@@ -1,5 +1,3 @@
-console.log('File loaded');
-
 import NextAuth, { NextAuthConfig } from 'next-auth';  // Corrected import statement
 import { SupabaseAdapter } from '@next-auth/supabase-adapter';
 import Credentials from 'next-auth/providers/credentials';
@@ -43,7 +41,6 @@ const config: NextAuthConfig = {
         if (error || !session) {
           throw new Error(error?.message || 'Invalid credentials');
         }
-
         // Build the user object from Supabase session data
         const user: User = {
           id: session.user.id,

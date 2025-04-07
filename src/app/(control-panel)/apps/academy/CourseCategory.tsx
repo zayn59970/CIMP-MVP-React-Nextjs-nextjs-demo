@@ -2,6 +2,7 @@ import { darken, lighten } from '@mui/material/styles';
 import Chip from '@mui/material/Chip';
 import _ from 'lodash';
 import { Course, useGetAcademyCategoriesQuery } from './AcademyApi';
+import { useEffect, useState } from 'react';
 
 type CourseCategoryProps = {
 	slug: Course['slug'];
@@ -13,7 +14,24 @@ type CourseCategoryProps = {
 function CourseCategory(props: CourseCategoryProps) {
 	const { slug } = props;
 
-	const { data: categories } = useGetAcademyCategoriesQuery();
+	const [categories, setCategories] = useState<any[]>([]);
+	  const [loading, setloading] = useState(true);
+	
+	  const fetctCategories = async () => {
+		setloading(true);
+		const { data: categories } = await useGetAcademyCategoriesQuery();
+	
+		if (categories) {
+			setCategories(categories);
+		}
+	
+		setloading(false);
+	  };
+	
+	  /** Subscribe to real-time changes */
+	  useEffect(() => {
+		fetctCategories();
+	  }, []);
 
 	const category = _.find(categories, { slug });
 

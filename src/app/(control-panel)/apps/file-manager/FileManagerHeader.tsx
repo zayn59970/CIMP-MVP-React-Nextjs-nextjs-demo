@@ -9,13 +9,15 @@ import Link from '@fuse/core/Link';
 import NavigateNextIcon from '@mui/icons-material/NavigateNext';
 import PageBreadcrumb from 'src/components/PageBreadcrumb';
 import useFileManagerData from './hooks/useFileManagerData';
+import UploadPopup from "./UploadPopup";
+import { useState } from 'react';
 
 /**
  * The file manager header.
  */
 function FileManagerHeader() {
-	const { folders, files, path } = useFileManagerData();
-
+	const { folders, filesNumber, path } = useFileManagerData();
+	const [openPopup, setOpenPopup] = useState(false);
 	return (
 		<div className="py-24 sm:py-32 w-full flex  space-y-8 sm:space-y-0 items-center justify-between">
 			<div className="flex flex-col space-y-8 sm:space-y-0">
@@ -66,7 +68,7 @@ function FileManagerHeader() {
 						className="text-base font-medium mx-2"
 						color="text.secondary"
 					>
-						{`${folders.length} folders, ${files.length} files`}
+						{`${folders.length} folders, ${filesNumber} files`}
 					</Typography>
 				</motion.span>
 			</div>
@@ -76,11 +78,14 @@ function FileManagerHeader() {
 					className="whitespace-nowrap"
 					variant="contained"
 					color="secondary"
+					onClick={() => setOpenPopup(true)}
 				>
 					<FuseSvgIcon size={20}>heroicons-outline:plus</FuseSvgIcon>
 					<span className="hidden sm:flex mx-8">Upload file</span>
 				</Button>
 			</div>
+			<UploadPopup open={openPopup} onClose={() => setOpenPopup(false)} />
+
 		</div>
 	);
 }

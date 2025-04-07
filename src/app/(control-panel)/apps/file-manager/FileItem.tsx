@@ -32,12 +32,12 @@ function FileItem(props: FileItemProps) {
 			</div>
 			<div className="flex shrink flex-col justify-center text-center">
 				<Typography className="truncate text-md font-medium">{item.name}</Typography>
-				{item.contents && (
+				{item.size && (
 					<Typography
 						className="truncate text-md font-medium"
 						color="text.secondary"
 					>
-						{item.contents}
+						{item.size}
 					</Typography>
 				)}
 			</div>

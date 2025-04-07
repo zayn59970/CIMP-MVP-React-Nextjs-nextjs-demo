@@ -12,7 +12,6 @@ import useFileManagerData from './hooks/useFileManagerData';
  */
 function FileManagerList() {
 	const { folders, files, isLoading } = useFileManagerData();
-console.log(folders, files);
 	if (isLoading) {
 		return <FuseLoading />;
 	}

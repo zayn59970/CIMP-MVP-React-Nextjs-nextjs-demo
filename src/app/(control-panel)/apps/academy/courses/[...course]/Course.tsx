@@ -24,7 +24,9 @@ import CourseProgress from '../../CourseProgress';
 import {
 	useGetAcademyCourseQuery,
 	useUpdateAcademyCourseMutation,
-	useGetAcademyCourseStepsQuery
+	useGetAcademyCourseStepsQuery,
+	CourseStep,UpdateAcademyCourseApiArg,
+	Course as Courses,
 } from '../../AcademyApi';
 import CourseStepContent from './CourseStepContent';
 
@@ -38,58 +40,79 @@ function Course() {
 	const [leftSidebarOpen, setLeftSidebarOpen] = useState(!isMobile);
 	const params = useParams();
 	const [courseId] = params.course as string;
-	const { data: course, isLoading } = useGetAcademyCourseQuery(
-		{ courseId },
-		{
-			skip: !courseId
-		}
-	);
-	const { data: courseSteps, isLoading: isCourseStepsLoading } = useGetAcademyCourseStepsQuery(
-		{ courseId },
-		{
-			skip: !courseId
-		}
-	);
-	console.log(course);
-	console.log(courseSteps);
-	console.log(params.course);
-	const [updateCourse] = useUpdateAcademyCourseMutation();
+	const [currentCourse, setCurrentCourse] = useState<Courses>();
+	const [courseSteps, setCourseSteps] = useState<CourseStep[]>([]);
+	  const [loading, setloading] = useState(true);
+	
+	  const fetctCourse = async () => {
+		setloading(true);
+
+		const { data: oneCourse } = await useGetAcademyCourseQuery(courseId);
+		const { data: courseSteps, isLoading: isCourseStepsLoading } =  await useGetAcademyCourseStepsQuery(courseId);
+
+
+		if (oneCourse) {
+			setCurrentCourse(oneCourse);
+		} 
+		if (courseSteps) {
+			setCourseSteps(courseSteps);
+		} 
+		
+	
+		setloading(false);
+	  };
+	
+	  /** Subscribe to real-time changes */
+	  useEffect(() => {
+		fetctCourse();
+		
+	  }, []);
+
+ const updateCourse = async (courseId: string, data: Partial<Courses>) => {
+     const { data: updatedCourse } = await useUpdateAcademyCourseMutation({
+         courseId,
+         ...data
+     } as UpdateAcademyCourseApiArg);
+     if (updatedCourse) {
+         setCurrentCourse(updatedCourse);
+     }
+ };
 
 	useEffect(() => {
 		/**
 		 * If the course is opened for the first time
 		 * Change ActiveStep to 1
 		 */
-		if (course && course?.progress?.currentStep === 0) {
-			updateCourse({
+		if (currentCourse && currentCourse?.progress?.currentStep === 0) {
+			updateCourse(
 				courseId,
-				data: { ...course, progress: { currentStep: 1, completed: 0 } }
-			});
+				{ ...currentCourse, progress: { currentStep: 1, completed: 0 } }
+			);
 		}
 		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [course]);
+	}, [currentCourse]);
 
 	useEffect(() => {
 		setLeftSidebarOpen(!isMobile);
 	}, [isMobile]);
 
-	const currentStep = course?.progress?.currentStep || 0;
+	const currentStep = currentCourse?.progress?.currentStep || 0;
 
 	function updateCurrentStep(index: number) {
-		if (course && (index > course.totalSteps || index < 0)) {
+		if (currentCourse && (index > currentCourse.totalSteps || index < 0)) {
 			return;
 		}
 
-		updateCourse({
+		updateCourse(
 			courseId,
-			data: {
-				...course,
+			{
+				...currentCourse,
 				progress: {
 					currentStep: index,
-					completed: index === course.totalSteps ? 1 : course.progress.completed
+					completed: index === currentCourse.totalSteps ? 1 : currentCourse.progress.completed
 				}
 			}
-		});
+		);
 	}
 
 	function handleNext() {
@@ -106,11 +129,11 @@ function Course() {
 
 	const activeStep = currentStep !== 0 ? currentStep : 1;
 
-	if (isLoading || isCourseStepsLoading) {
+	if (loading) {
 		return <FuseLoading />;
 	}
 
-	if (!course) {
+	if (!currentCourse) {
 		return <Error404Page />;
 	}
 
@@ -121,7 +144,7 @@ function Course() {
 					{!isMobile && (
 						<CourseProgress
 							className="sticky top-0 z-10"
-							course={course}
+							course={currentCourse}
 						/>
 					)}
 
@@ -141,7 +164,7 @@ function Course() {
 								</FuseSvgIcon>
 							</IconButton>
 
-							<Typography className="text-md font-medium tracking-tight mx-10">{course.title}</Typography>
+							<Typography className="text-md font-medium tracking-tight mx-10">{currentCourse.title}</Typography>
 						</Paper>
 					)}
 
@@ -152,6 +175,7 @@ function Course() {
 						enableMouseEvents
 						onChangeIndex={handleStepChange}
 					>
+
 						{courseSteps?.map((step, index: number) => (
 							<div
 								className="flex justify-center p-16 pb-64 sm:p-24 sm:pb-64 md:p-48 md:pb-96 min-h-full"
@@ -176,7 +200,7 @@ function Course() {
 								>
 									Prev
 								</Button>
-								<Button className="pointer-events-none">{`${activeStep}/${course.totalSteps}`}</Button>
+								<Button className="pointer-events-none">{`${activeStep}/${currentCourse.totalSteps}`}</Button>
 								<Button
 									endIcon={<FuseSvgIcon>heroicons-outline:arrow-small-right</FuseSvgIcon>}
 									onClick={handleNext}
@@ -200,11 +224,11 @@ function Course() {
 								<FuseSvgIcon>heroicons-outline:bars-3</FuseSvgIcon>
 							</IconButton>
 
-							<Typography className="mx-8">{`${activeStep}/${course.totalSteps}`}</Typography>
+							<Typography className="mx-8">{`${activeStep}/${currentCourse.totalSteps}`}</Typography>
 
 							<CourseProgress
 								className="flex flex-1 mx-8"
-								course={course}
+								course={currentCourse}
 							/>
 
 							<IconButton onClick={handleBack}>
@@ -243,7 +267,7 @@ function Course() {
 							Back to courses
 						</Button>
 
-						<CourseInfo course={course} />
+						<CourseInfo course={currentCourse} />
 					</div>
 					<Divider />
 					<Stepper
@@ -292,6 +316,7 @@ function Course() {
 									>
 										{step.title}
 									</StepLabel>
+									
 									<StepContent>{step.subtitle}</StepContent>
 								</Step>
 							);
@@ -309,3 +334,4 @@ function Course() {
 }
 
 export default Course;
+

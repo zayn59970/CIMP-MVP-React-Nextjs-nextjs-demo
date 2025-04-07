@@ -19,6 +19,7 @@ import FuseLoading from '@fuse/core/FuseLoading';
 import PageBreadcrumb from 'src/components/PageBreadcrumb';
 import CourseCard from './CourseCard';
 import { Course, useGetAcademyCategoriesQuery, useGetAcademyCoursesQuery } from '../AcademyApi';
+import Editor from './Editor';
 
 const Root = styled(FusePageSimple)(({ theme }) => ({
 	'& .FusePageSimple-header': {
@@ -50,8 +51,38 @@ const item = {
  * The Courses page.
  */
 function Courses() {
-	const { data: courses, isLoading } = useGetAcademyCoursesQuery();
-	const { data: categories } = useGetAcademyCategoriesQuery();
+	const [courses, setCourses] = useState<Course[]>([]);
+	const [categories, setCategories] = useState<any[]>([]);
+	const [loading, setloading] = useState(true);
+	const [content, setContent] = useState('');
+	
+	const handleSaveContent = (html: string) => {
+		setContent(html);
+		// You can now save this HTML to Supabase or wherever you need.
+		console.log('Content to save:', html);
+	  };
+	
+	  const fetctCourses = async () => {
+		setloading(true);
+		const { data, isLoading } = await useGetAcademyCoursesQuery();
+		const { data: categories } = await useGetAcademyCategoriesQuery();
+	
+		if (data) {
+			setCourses(data);
+		} 
+		if (categories) {
+			setCategories(categories);
+		}
+	
+		setloading(false);
+	  };
+	
+	  /** Subscribe to real-time changes */
+	  useEffect(() => {
+		  fetctCourses();
+	  }, []);
+
+
 
 	const isMobile = useThemeMediaQuery((theme) => theme.breakpoints.down('lg'));
 
@@ -92,7 +123,7 @@ function Courses() {
 		setSearchText(event.target.value);
 	}
 
-	if (isLoading) {
+	if (loading) {
 		return <FuseLoading />;
 	}
 
@@ -248,6 +279,7 @@ function Courses() {
 							</div>
 						))}
 				</div>
+				// <Editor onSave={handleSaveContent} />
 			}
 			scroll={isMobile ? 'normal' : 'page'}
 		/>
