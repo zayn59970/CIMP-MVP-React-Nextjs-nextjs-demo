@@ -34,6 +34,8 @@ import {
 } from "../../TasksApi";
 import SectionModel from "../../models/SectionModel";
 import TaskModel from "../../models/TaskModel";
+import { supabaseClient } from "@/utils/supabaseClient";
+import { Avatar } from "@mui/material";
 
 /**
  * Form Validation Schema
@@ -73,6 +75,7 @@ function TaskForm() {
   const [task, setTask] = useState<Task>();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [users, setUsers] = useState<any[]>([]);
 
   useEffect(() => {
     const fetchTags = async () => {
@@ -85,7 +88,16 @@ function TaskForm() {
       }
       setLoading(false);
     };
+    const fetchUsers = async () => {
+      const { data, error } = await supabaseClient.from("users").select("*");
+      if (error) {
+        console.error("Error fetching users:", error.message);
+      } else {
+        setUsers(data || []);
+      }
+    };
 
+    fetchUsers();
     fetchTags();
   }, []);
 
@@ -104,137 +116,112 @@ function TaskForm() {
     fetchTags();
   }, [taskId]);
 
-//   const { data: task, isError } = useGetTasksItemQuery(taskId);
-
-  // const { data: tags } = useGetTasksTagsQuery();
-  // const [updateTask] = useUpdateTasksItemMutation();
-  // const [createTask] = useCreateTasksItemMutation();
-  
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
-  
+
   const { control, watch, reset, handleSubmit, formState } = useForm<Task>({
-	  mode: "onChange",
+    mode: "onChange",
     resolver: zodResolver(schema),
-	defaultValues: {
-		dueDate: new Date().toISOString() // Set to now
-	}
-});
+    defaultValues: {
+      dueDate: new Date().toISOString(), // Set to now
+    },
+  });
 
-const { isValid, dirtyFields, errors } = formState;
+  const { isValid, dirtyFields, errors } = formState;
 
-const form = watch();
-/**
- * Update Task
-*/
-useDeepCompareEffect(() => {
-	if (
-		!(_.isEmpty(form) || !task || isNew) &&
-		!_.isEqual(task, form)
-    ) {
-		console.log("Task updated");
-		onSubmit(form);
+  const form = watch();
+  /**
+   * Update Task
+   */
+  useDeepCompareEffect(() => {
+    if (!task || isNew) return; // ⛔ Skip if still loading task or creating a new one
+
+    // Skip update if form is empty or hasn't changed
+    if (_.isEmpty(form) || _.isEqual(task, form)) return;
+
+    // Only call update if form is valid and all necessary data is present
+    if (form?.id && isValid) {
+      console.log("Task updated");
+      onSubmit(form);
     }
-}, [form, isValid]);
+  }, [form, isValid, task, isNew]);
 
-useEffect(() => {
-	if (isNew) {
-      if (newTaskType === "section") {
-		  reset(SectionModel({}));
-		}
-
-		if (newTaskType === "task") {
-			reset(TaskModel({}));
-		}
-    } else {
-		reset({ ...task });
+  useEffect(() => {
+    if (isNew) {
+      if (newTaskType === "section") reset(SectionModel({}));
+      if (newTaskType === "task") reset(TaskModel({}));
+    } else if (task) {
+      reset({ ...task });
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-}, [task, reset, taskId, newTaskType]);
+  }, [task, reset, taskId, newTaskType, isNew]);
 
-/**
- * Form Submit
-*/
-// function onSubmit(data: Task) {
-	// 	// updateTask(data);
-	// }
-	
-	// function onSubmitNew(data: Task) {
-		// 	// createTask(data)
-		// 	// 	.unwrap()
-		// 	// 	.then((newTask) => {
-			// 	// 		navigate(`/apps/tasks/${newTask?.id}`);
-  // 	// 	})
-  // 	// 	.catch((rejected) => {
-  // 	// 		dispatch(showMessage({ message: `Error creating task item ${rejected}`, variant: 'error' }));
-  // 	// 	});
-  // }
   const [createTask] = useState(() => useCreateTasksItemMutation);
   const [updateTask] = useState(() => useUpdateTasksItemMutation);
-  
-  const onSubmitNew = async (data: Task) => {
-	try {
-	  // Fetch all tasks and find the highest order number
-	  const response = await useGetTasksQuery();
-	  if (response.error) {
-		setError(response.error.message);
-	  }
-	//   const { data: tasks, error: fetchError } = await useGetTasksItemQuery();
-  
-	  // Get the highest order number and increment it
-	  const lastOrder = response.data?.length > 0 ? Math.max(...response.data.map((t) => t.order)) : 0;
-	  const newTaskData = { ...data, order: lastOrder + 1 };
-  
-	  // Create the new task with the updated order
-	  const { data: createdTask, error } = await createTask(newTaskData);
-	  if (error) throw error;
-  
-	  dispatch(
-		showMessage({
-		  message: "Task created successfully",
-		  variant: "success",
-		})
-	  );
-	  navigate(`/apps/tasks/${createdTask.id}`);
-	} catch (error) {
-	  dispatch(
-		showMessage({ message: `Error: ${error.message}`, variant: "error" })
-	  );
-	}
-  };
-  
 
-const onSubmit = async (data: Task) => {
-	try {
-		const { data: updatedTask, error } = await updateTask(data);
-		if (error) throw error;
-		
-		dispatch(
-			showMessage({
-				message: "Task updated successfully",
-				variant: "success",
+  const onSubmitNew = async (data: Task) => {
+    try {
+      // Fetch all tasks and find the highest order number
+      const response = await useGetTasksQuery();
+      if (response.error) {
+        setError(response.error.message);
+      }
+      //   const { data: tasks, error: fetchError } = await useGetTasksItemQuery();
+
+      // Get the highest order number and increment it
+      const lastOrder =
+        response.data?.length > 0
+          ? Math.max(...response.data.map((t) => t.order))
+          : 0;
+      const newTaskData = { ...data, order: lastOrder + 1 };
+
+      // Create the new task with the updated order
+      const { data: createdTask, error } = await createTask(newTaskData);
+      if (error) throw error;
+
+      dispatch(
+        showMessage({
+          message: "Task created successfully",
+          variant: "success",
         })
-	);
+      );
+      navigate(`/apps/tasks/${createdTask.id}`);
+    } catch (error) {
+      dispatch(
+        showMessage({ message: `Error: ${error.message}`, variant: "error" })
+      );
+    }
+  };
+
+  const onSubmit = async (data: Task) => {
+    try {
+      const { data: updatedTask, error } = await updateTask(data);
+      if (error) throw error;
+
+      dispatch(
+        showMessage({
+          message: "Task updated successfully",
+          variant: "success",
+        })
+      );
       navigate(`/apps/tasks/${updatedTask.id}`);
     } catch (error) {
-		dispatch(
-			showMessage({ message: `Error: ${error.message}`, variant: "error" })
-		);
+      dispatch(
+        showMessage({ message: `Error: ${error.message}`, variant: "error" })
+      );
     }
-};
-if (error && taskId !== "new") {
-	setTimeout(() => {
-		navigate("/apps/tasks");
-		dispatch(showMessage({ message: "NOT FOUND" }));
+  };
+  if (error && taskId !== "new") {
+    setTimeout(() => {
+      navigate("/apps/tasks");
+      dispatch(showMessage({ message: "NOT FOUND" }));
     }, 0);
-	
+
     return null;
-}
+  }
 
-if (_.isEmpty(form)) {
-	return <FuseLoading />;
-}
-
+  if (_.isEmpty(form)) {
+    return <FuseLoading />;
+  }
 
   return (
     <>
@@ -360,6 +347,50 @@ if (_.isEmpty(form)) {
             )}
           />
         </div>
+        <div className="w-full items-center">
+
+        <Controller
+          control={control}
+          name="assignedTo"
+          render={({ field }) => (
+            <Autocomplete
+            options={users}
+            getOptionLabel={(user) =>
+              user?.displayName || "Unknown"
+              }
+              isOptionEqualToValue={(option, value) => option.id === value.id}
+              value={users.find((u) => u.id === field.value) || null}
+              onChange={(_, newValue) =>
+                field.onChange(newValue ? newValue.id : null)
+              }
+              renderInput={(params) => (
+                <TextField
+                {...params}
+                  label="Assign To"
+                  placeholder="Select a user"
+                  fullWidth
+                  variant="outlined"
+                  />
+                )}
+              renderOption={(props, user) => (
+                <Box
+                component="li"
+                {...props}
+                key={user.id}
+                className="flex items-center gap-8"
+                >
+                  <Avatar
+                    src={user.photoURL}
+                    alt={user.displayName || user.id}
+                    sx={{ width: 28, height: 28 }}
+                    />
+                  <span>{user.displayName || "Unknown"}</span>
+                </Box>
+              )}
+            />
+          )}
+        />
+              </div>
 
         <Controller
           control={control}

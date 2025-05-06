@@ -24,7 +24,7 @@ function ContactsHeader() {
 
 	const getData = async () =>{
 		const { data, error } = await supabaseClient
-		.from('contact')
+		.from('users')
 		.select('*');
 		if (error) {
 			console.log('error', error);
@@ -43,19 +43,9 @@ function ContactsHeader() {
 		});
     }, []);
 
-
-
-
-
-
-
-
-
-
-
 	// const { data, isLoading } = useGetContactsListQuery();
 
-	const filteredData = useAppSelector(selectFilteredContactList(contacts));
+	// const filteredData = useAppSelector(selectFilteredContactList(contacts));
 
 	useEffect(() => {
 		return () => {
@@ -87,7 +77,7 @@ function ContactsHeader() {
 						className="text-base font-medium ml-2"
 						color="text.secondary"
 					>
-						{`${filteredData?.length} contacts`}
+						{`${contacts?.length} contacts`}
 					</Typography>
 				</motion.span>
 			</div>
@@ -112,7 +102,7 @@ function ContactsHeader() {
 						onChange={(ev: ChangeEvent<HTMLInputElement>) => dispatch(setSearchText(ev))}
 					/>
 				</Box>
-				<Button
+				{/* <Button
 					className=""
 					variant="contained"
 					color="secondary"
@@ -121,7 +111,7 @@ function ContactsHeader() {
 				>
 					<FuseSvgIcon size={20}>heroicons-outline:plus</FuseSvgIcon>
 					<span className="hidden sm:flex mx-8">Add</span>
-				</Button>
+				</Button> */}
 			</div>
 		</div>
 	);

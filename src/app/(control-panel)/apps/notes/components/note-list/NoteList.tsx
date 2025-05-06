@@ -10,6 +10,7 @@ import FuseLoading from '@fuse/core/FuseLoading';
 import NoteListItem from './NoteListItem';
 import { NotesNote, RouteParams, useGetNotesListQuery } from '../../NotesApi';
 import { selectSearchText } from '../../notesAppSlice';
+import { useSession } from 'next-auth/react';
 
 /**
  * The note list.
@@ -17,22 +18,25 @@ import { selectSearchText } from '../../notesAppSlice';
 function NoteList() {
 	const routeParams = useParams<RouteParams>();
 	// const { data: notes, isLoading } = useGetNotesListQuery(routeParams);
-
+  const { data } = useSession();
+  const createdBy = data.db.id || "unknown-user";
+  console.log(createdBy)
 const [notes, setNotes] = useState<NotesNote[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const fetchTasks = async () => {
-	setIsLoading(true);
-	const { data } = await useGetNotesListQuery(routeParams);
-
-	if (data) {
-		setNotes(data);
-	} else if (error) {
-	  setError(error);
-	}
-
-	setIsLoading(false);
+    setIsLoading(true);
+    const { data, error } = await useGetNotesListQuery(routeParams); 
+  
+    if (data) {
+      const filteredNotes = data.filter(note => note.createdBy === createdBy); 
+      setNotes(filteredNotes);
+    } else if (error) {
+      setError(error);
+    }
+  
+    setIsLoading(false);
   };
 
   /** Subscribe to real-time changes */

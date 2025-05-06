@@ -10,6 +10,7 @@ import { darken } from '@mui/material/styles';
 import PageBreadcrumb from 'src/components/PageBreadcrumb';
 import useUser from '@auth/useUser';
 import { useGetProjectDashboardProjectsQuery } from './ProjectDashboardApi';
+import { redirect } from 'next/navigation';
 
 /**
  * The ProjectDashboardAppHeader page.
@@ -18,6 +19,9 @@ function ProjectDashboardAppHeader() {
 	const { data: projects } = useGetProjectDashboardProjectsQuery();
 
 	const { data: user, isGuest } = useUser();
+
+
+
 
 	const [selectedProject, setSelectedProject] = useState<{ id: number; menuEl: HTMLElement | null }>({
 		id: 1,
@@ -87,6 +91,8 @@ function ProjectDashboardAppHeader() {
 						className="whitespace-nowrap"
 						variant="contained"
 						color="primary"
+						onClick={() => {redirect('/apps/messenger');}}
+
 						startIcon={<FuseSvgIcon size={20}>heroicons-solid:envelope</FuseSvgIcon>}
 					>
 						Messages
@@ -95,13 +101,14 @@ function ProjectDashboardAppHeader() {
 						className="whitespace-nowrap"
 						variant="contained"
 						color="secondary"
+						onClick={() => {redirect('/apps/settings');}}
 						startIcon={<FuseSvgIcon size={20}>heroicons-solid:cog-6-tooth</FuseSvgIcon>}
 					>
 						Settings
 					</Button>
 				</div>
 			</div>
-			<div className="flex items-center">
+			{/* <div className="flex items-center">
 				<Button
 					onClick={handleOpenProjectMenu}
 					className="flex items-center border border-solid border-b-0 rounded-b-0 h-36 px-16 text-md sm:text-base"
@@ -138,7 +145,7 @@ function ProjectDashboardAppHeader() {
 							</MenuItem>
 						))}
 				</Menu>
-			</div>
+			</div> */}
 		</div>
 	);
 }

@@ -1,5 +1,5 @@
 import Typography from '@mui/material/Typography';
-import { motion } from 'motion/react';
+import { motion } from 'framer-motion'; // fixed from 'motion/react'
 import Button from '@mui/material/Button';
 import NavLinkAdapter from '@fuse/core/NavLinkAdapter';
 import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
@@ -9,17 +9,29 @@ import { Task } from '../TasksApi';
 import { useEffect, useState } from 'react';
 import FuseLoading from '@fuse/core/FuseLoading';
 import { supabaseClient } from '@/utils/supabaseClient';
+import { useSession } from 'next-auth/react';
 
 function TasksHeader() {
 	const [tasks, setTasks] = useState<Task[]>([]);
 	const [isLoading, setIsLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
-	const [remainingTasks, setRemainingTasks] = useState(0); // Fix: Use state for remaining tasks
+	const [remainingTasks, setRemainingTasks] = useState(0);
 
-	/** Fetch tasks from Supabase */
+	const { data: sessionData } = useSession();
+	const userRole = sessionData?.db?.role?.[0] || 'unknown-user';
+	const userId = sessionData?.db?.id || 'unknown-user-id';
+	const isAdmin = userRole === 'admin';
+
+	/** Fetch tasks from Supabase with role filtering */
 	const fetchTasks = async () => {
 		setIsLoading(true);
-		const { data, error } = await supabaseClient.from('task').select('*');
+
+		const query = supabaseClient.from('task').select('*');
+		if (!isAdmin) {
+			query.eq('assignedTo', userId);
+		}
+
+		const { data, error } = await query;
 
 		if (error) {
 			setError(error.message);
@@ -40,8 +52,6 @@ function TasksHeader() {
 				'postgres_changes',
 				{ event: '*', schema: 'public', table: 'task' },
 				(payload) => {
-					console.log('Task Change Detected:', payload);
-
 					setTasks((prevTasks) => {
 						switch (payload.eventType) {
 							case 'INSERT':
@@ -67,7 +77,8 @@ function TasksHeader() {
 
 	/** Update remainingTasks whenever tasks change */
 	useEffect(() => {
-		setRemainingTasks(_.filter(tasks, (item) => item.type === 'task' && !item.completed).length);
+		const count = tasks.filter((item) => item.type === 'task' && !item.completed).length;
+		setRemainingTasks(count);
 	}, [tasks]);
 
 	if (isLoading) {
@@ -84,7 +95,7 @@ function TasksHeader() {
 						initial={{ x: -20 }}
 						animate={{
 							x: 0,
-							transition: { delay: 0.2 }
+							transition: { delay: 0.2 },
 						}}
 					>
 						<Typography className="text-4xl font-extrabold leading-none tracking-tight mb-4">
@@ -97,17 +108,19 @@ function TasksHeader() {
 						animate={{
 							y: 0,
 							opacity: 1,
-							transition: { delay: 0.2 }
+							transition: { delay: 0.2 },
 						}}
 					>
 						<Typography className="text-base font-medium ml-2" color="text.secondary">
-							{`${remainingTasks} remaining tasks`}
+							{isAdmin
+								? `${remainingTasks} remaining tasks in the system`
+								: `${remainingTasks} tasks assigned to you`}
 						</Typography>
 					</motion.span>
 				</div>
 			</div>
 
-			<div className="flex items-center space-x-8">
+			{isAdmin&&<div className="flex items-center space-x-8">
 				<Button
 					className="whitespace-nowrap"
 					component={NavLinkAdapter}
@@ -128,7 +141,7 @@ function TasksHeader() {
 					<FuseSvgIcon size={20}>heroicons-outline:plus</FuseSvgIcon>
 					<span className="mx-8">Add Task</span>
 				</Button>
-			</div>
+			</div>}
 		</div>
 	);
 }

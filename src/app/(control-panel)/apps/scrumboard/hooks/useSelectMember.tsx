@@ -1,12 +1,40 @@
-import { useMemo } from 'react';
-import _ from 'lodash';
-import { useGetScrumboardMembersQuery } from '../ScrumboardApi';
+import { useState, useEffect } from 'react';
+import { supabaseClient } from '@/utils/supabaseClient';
 
 function useSelectMember(id: string) {
-	const { data: members } = useGetScrumboardMembersQuery();
-	const member = useMemo(() => _.find(members, { id }), [members, id]);
+  const [member, setMember] = useState<any>(null);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
 
-	return member;
+  useEffect(() => {
+    if (!id) return;
+
+    const fetchMember = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const { data, error } = await supabaseClient
+          .from('users')
+          .select('*')
+          .eq('id', id)
+          .single();
+
+        if (error) {
+          setError(error.message);
+        } else {
+          setMember(data);
+        }
+      } catch (err) {
+        setError((err as Error).message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchMember();
+  }, [id]);
+
+  return { member, loading, error };
 }
 
 export default useSelectMember;

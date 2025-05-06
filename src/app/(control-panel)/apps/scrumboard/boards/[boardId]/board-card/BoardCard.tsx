@@ -18,6 +18,7 @@ import BoardCardLabel from './BoardCardLabel';
 import BoardCardDueDate from './BoardCardDueDate';
 import BoardCardCheckItems from './BoardCardCheckItems';
 import { supabaseClient } from '@/utils/supabaseClient';
+import { useSession } from 'next-auth/react';
 
 const StyledCard = styled(Card)(({ theme }) => ({
   '& ': {
@@ -39,90 +40,63 @@ type BoardCardProps = {
 function BoardCard(props: BoardCardProps) {
   const { cardId, index, boardId } = props;
   const dispatch = useAppDispatch();
+const { data } = useSession();
+
+  const userRole = data?.db?.role?.[0] || "unknown-user";
+  const userId = data?.db?.id || "unknown-user-id";
+  const isAdmin = userRole === "admin";
 
   const [card, setCard] = useState<any>(null);
   const [members, setMembers] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Fetch card and members data from Supabase
-//   useEffect(() => {
-//     const fetchData = async () => {
-//       try {
-//         setIsLoading(true);
-
-//         const { data: cardData, error: cardError } = await supabaseClient
-//           .from('scrumboard_card')
-//           .select('*')
-//           .eq('id', cardId)
-//           .single();
-
-//         if (cardError) {
-//           console.error('Error fetching card:', cardError.message);
-//           return;
-//         }
-
-//         const { data: membersData, error: membersError } = await supabaseClient
-//           .from('scrumboard_member')
-//           .select('*');
-// 		  if (membersError) {
-// 			  console.error('Error fetching members:', membersError.message);
-// 			  return;
-// 			}
-			
-// 			setCard(cardData);
-// 			setMembers(membersData || []);
-// 		} catch (err) {
-// 			console.error('Unexpected error fetching data:', err);
-// 		} finally {
-// 			setIsLoading(false);
-// 		}
-//     };
-	
-//     fetchData();
-// }, [cardId]);
-useEffect(() => {
-	const fetchData = async () => {
-	  try {
-		setIsLoading(true);
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setIsLoading(true);
   
-		console.log('Fetching card with cardId:', cardId);
+        const { data: cardData, error: cardError } = await supabaseClient
+          .from('scrumboard_card')
+          .select('*')
+          .eq('id', cardId)
+          .maybeSingle();
   
-		const { data: cardData, error: cardError } = await supabaseClient
-		  .from('scrumboard_card')
-		  .select('*')
-		  .eq('id', cardId)
-		  .maybeSingle(); // Allows for no row without throwing an error
+        if (cardError) {
+          console.error('Error fetching card:', cardError.message);
+          return;
+        }
   
-		if (cardError) {
-		  console.error('Error fetching card:', cardError.message);
-		  return;
-		}
+        if (!cardData) {
+          console.warn('No card found with the provided cardId:', cardId);
+          return;
+        }
   
-		if (!cardData) {
-		  console.warn('No card found with the provided cardId:', cardId);
-		  return;
-		}
+        // 👇 Filter card if not admin and user is not a member
+        if (!isAdmin && !(cardData.memberIds || []).includes(userId)) {
+          setCard(null);
+          return;
+        }
   
-		const { data: membersData, error: membersError } = await supabaseClient
-		  .from('scrumboard_member')
-		  .select('*');
+        const { data: membersData, error: membersError } = await supabaseClient
+          .from('users')
+          .select('*');
   
-		if (membersError) {
-		  console.error('Error fetching members:', membersError.message);
-		  return;
-		}
+        if (membersError) {
+          console.error('Error fetching members:', membersError.message);
+          return;
+        }
   
-		setCard(cardData);
-		setMembers(membersData || []);
-	  } catch (err) {
-		console.error('Unexpected error fetching data:', err);
-	  } finally {
-		setIsLoading(false);
-	  }
-	};
+        setCard(cardData);
+        setMembers(membersData || []);
+      } catch (err) {
+        console.error('Unexpected error fetching data:', err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
   
-	fetchData();
-  }, [cardId]);
+    fetchData();
+  }, [cardId, isAdmin, userId]);
   
 function handleCardClick(ev: React.MouseEvent<HTMLDivElement>, _card: any) {
     ev.preventDefault();
@@ -139,7 +113,6 @@ function handleCardClick(ev: React.MouseEvent<HTMLDivElement>, _card: any) {
 
   const cardCoverImage = _.find(card?.attachments, { id: card?.attachmentCoverId });
   
-  console.log(card);
   return (
     <Draggable draggableId={cardId} index={index}>
       {(provided, snapshot) => (
@@ -156,14 +129,14 @@ function handleCardClick(ev: React.MouseEvent<HTMLDivElement>, _card: any) {
             onClick={(ev) => handleCardClick(ev, card)}
           >
             {cardCoverImage && (
-              <img className="block" src={cardCoverImage.src} alt="card cover" />
+              <img className="block" src={cardCoverImage.url} alt="card cover" />
             )}
 
             <div className="p-16 pb-0">
               {card.labels?.length > 0 && (
                 <div className="flex flex-wrap mb-8 -mx-4">
                   {card.labels.map((id) => (
-                    <BoardCardLabel boardId={boardId} id={id} key={id} />
+                    <BoardCardLabel id={id} key={id} />
                   ))}
                 </div>
               )}
@@ -206,8 +179,8 @@ function handleCardClick(ev: React.MouseEvent<HTMLDivElement>, _card: any) {
                     {card.memberIds.map((id) => {
                       const member = _.find(members, { id });
                       return (
-                        <Tooltip title={member?.name} key={id}>
-                          <Avatar key={id} alt="member" src={member?.avatar} />
+                        <Tooltip title={member?.displayName} key={id}>
+                          <Avatar key={id} alt="member" src={member?.photoURL} />
                         </Tooltip>
                       );
                     })}

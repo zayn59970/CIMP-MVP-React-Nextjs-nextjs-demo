@@ -52,11 +52,11 @@ function UserAvatar(props: UserAvatarPropsType) {
 			statuscolor={status?.color}
 		>
 			<Avatar
-				src={user?.avatar}
+				src={user?.photoURL}
 				alt={user?.name}
 				className="w-full h-full"
 			>
-				{user?.name && (!user?.avatar || user?.avatar === '') ? user?.name[0] : ''}
+				{user?.name && (!user?.photoURL || user?.photoURL === '') ? user?.name[0] : ''}
 			</Avatar>
 		</StyledBadge>
 	);

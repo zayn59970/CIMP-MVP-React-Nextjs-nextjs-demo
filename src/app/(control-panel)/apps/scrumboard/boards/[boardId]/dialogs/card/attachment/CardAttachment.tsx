@@ -44,7 +44,7 @@ function CardAttachment(props: CardAttachmentProps) {
 						<Paper className="overflow-hidden shadow">
 							<img
 								className="block max-h-full"
-								src={item.src}
+								src={item.url}
 								alt="attachment"
 							/>
 						</Paper>
@@ -65,7 +65,7 @@ function CardAttachment(props: CardAttachmentProps) {
 							className="truncate w-full mb-12"
 							color="text.secondary"
 						>
-							{format(fromUnixTime(item.time), 'Pp')}
+							{format(fromUnixTime(Math.floor(item.time / 1000)), 'MMM do yy')}
 						</Typography>
 						<Button
 							aria-haspopup="true"
@@ -129,7 +129,7 @@ function CardAttachment(props: CardAttachmentProps) {
 							className="truncate w-full mb-12"
 							color="text.secondary"
 						>
-							{item.time}
+							{format(fromUnixTime(Math.floor(item.time / 1000)), 'MMM do yy')}
 						</Typography>
 						<Button
 							aria-haspopup="true"

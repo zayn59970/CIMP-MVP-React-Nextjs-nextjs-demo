@@ -1,152 +1,184 @@
+'use client';
+
 import FuseScrollbars from '@fuse/core/FuseScrollbars';
 import { styled } from '@mui/material/styles';
 import Divider from '@mui/material/Divider';
-import { motion } from 'motion/react';
-import { memo, useMemo, useRef } from 'react';
+import { motion } from 'framer-motion';
+import { memo, useEffect, useMemo, useRef, useState } from 'react';
 import { useAppDispatch, useAppSelector } from 'src/store/hooks';
 import clsx from 'clsx';
 import { Box, CircularProgress } from '@mui/material';
-import { selectSelectedChatId, setSelectedChatId, openChatPanel } from './messengerPanelSlice';
-import ContactButton from './ContactButton';
 import {
-	useCreateMessengerChatMutation,
-	useGetMessengerChatsQuery,
-	useGetMessengerContactsQuery,
-	useGetMessengerUserProfileQuery
-} from '../MessengerApi';
+  selectSelectedChatId,
+  setSelectedChatId,
+  openChatPanel
+} from './messengerPanelSlice';
+import ContactButton from './ContactButton';
+import { useSession } from 'next-auth/react';
+import { supabaseClient } from '@/utils/supabaseClient';
+import useNavigate from '@fuse/hooks/useNavigate';
+import useMessengerChats, { isSameChat } from '../functions';
 
 const Root = styled(FuseScrollbars)(({ theme }) => ({
-	background: theme.palette.background.paper
+  background: theme.palette.background.paper
 }));
 
 const container = {
-	show: {
-		transition: {
-			staggerChildren: 0.025
-		}
-	}
+  show: {
+    transition: {
+      staggerChildren: 0.025
+    }
+  }
 };
+
 const item = {
-	hidden: { opacity: 0, scale: 0.6 },
-	show: { opacity: 1, scale: 1 }
+  hidden: { opacity: 0, scale: 0.6 },
+  show: { opacity: 1, scale: 1 }
 };
 
 type ContactListProps = {
-	className?: string;
+  className?: string;
 };
 
-/**
- * The contact list.
- */
 function ContactList(props: ContactListProps) {
-	const { className } = props;
-	const dispatch = useAppDispatch();
-	const selectedChatId = useAppSelector(selectSelectedChatId);
-	const contactListScroll = useRef<HTMLDivElement>(null);
-	const { data: user } = useGetMessengerUserProfileQuery();
+  const { className } = props;
+  const dispatch = useAppDispatch();
+  const selectedChatId = useAppSelector(selectSelectedChatId);
+  const contactListScroll = useRef<HTMLDivElement>(null);
+  const { data: session } = useSession();
+  const userId = session?.db?.id || 'unknown-user-id';
 
-	const [createChat] = useCreateMessengerChatMutation();
-	const { data: chats, isLoading: isChatsLoading } = useGetMessengerChatsQuery();
-	const { data: contacts, isLoading: isContactsLoading } = useGetMessengerContactsQuery();
-	const { data: chatList } = useGetMessengerChatsQuery();
+  const [contacts, setContacts] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const chatList = useMessengerChats();
+  const navigate = useNavigate();
 
-	const chatListContacts = useMemo(() => {
-		return contacts?.length > 0 && chats?.length > 0
-			? chats.map((_chat) => ({
-					..._chat,
-					...contacts.find((_contact) => _chat.contactIds.includes(_contact.id))
-				}))
-			: [];
-	}, [contacts, chats]);
+  useEffect(() => {
+    async function fetchData() {
+      setLoading(true);
+      const { data: users, error } = await supabaseClient
+        .from('users')
+        .select('*')
+        .neq('id', userId);
 
-	const scrollToTop = () => {
-		if (!contactListScroll.current) {
-			return;
-		}
+      if (error) {
+        console.error('Error fetching contacts:', error);
+      } else {
+        setContacts(users || []);
+      }
 
-		contactListScroll.current.scrollTop = 0;
-	};
+      setLoading(false);
+    }
 
-	const handleContactClick = (contactId: string) => {
-		dispatch(openChatPanel());
+    fetchData();
+  }, [userId]);
 
-		const chat = chatList?.find((chat) => chat.contactIds.includes(contactId));
+  const chatListContacts = useMemo(() => {
+    return chatList
+      .map((chat) => {
+        const contact = contacts.find((c) => chat.contactIds.includes(c.id));
+        return contact ? { ...chat, ...contact } : null;
+      })
+      .filter(Boolean);
+  }, [chatList, contacts]);
 
-		if (chat) {
-			dispatch(setSelectedChatId(chat.id));
-			scrollToTop();
-		} else {
-			createChat({ contactIds: [contactId, user.id] }).then((res) => {
-				const chatId = res.data.id;
-				dispatch(setSelectedChatId(chatId));
-				scrollToTop();
-			});
-		}
-	};
+  const scrollToTop = () => {
+    if (contactListScroll.current) {
+      contactListScroll.current.scrollTop = 0;
+    }
+  };
 
-	if (isContactsLoading || isChatsLoading) {
-		return (
-			<Box
-				className="flex justify-center py-12"
-				sx={{
-					width: 70,
-					minWidth: 70
-				}}
-			>
-				<CircularProgress color="secondary" />
-			</Box>
-		);
-	}
+  const handleContactClick = async (contactId: string) => {
+    dispatch(openChatPanel());
 
-	return (
-		<Root
-			className={clsx('flex shrink-0 flex-col overflow-y-auto py-8 overscroll-contain', className)}
-			ref={contactListScroll}
-			option={{ suppressScrollX: true, wheelPropagation: false }}
-		>
-			{contacts?.length > 0 && (
-				<motion.div
-					variants={container}
-					initial="hidden"
-					animate="show"
-					className="flex flex-col shrink-0"
-				>
-					{chatListContacts &&
-						chatListContacts.map((contact) => {
-							return (
-								<motion.div
-									variants={item}
-									key={contact.id}
-								>
-									<ContactButton
-										contact={contact}
-										selectedChatId={selectedChatId}
-										onClick={handleContactClick}
-									/>
-								</motion.div>
-							);
-						})}
-					<Divider className="mx-24 my-8" />
-					{contacts.map((contact) => {
-						const chatContact = chats.find((_chat) => _chat.contactIds.includes(contact.id));
+    const existingChat = chatList.find((chat) =>
+      isSameChat(chat, [contactId, userId])
+    );
 
-						return !chatContact ? (
-							<motion.div
-								variants={item}
-								key={contact.id}
-							>
-								<ContactButton
-									contact={contact}
-									selectedChatId={selectedChatId}
-									onClick={handleContactClick}
-								/>
-							</motion.div>
-						) : null;
-					})}
-				</motion.div>
-			)}
-		</Root>
-	);
+    if (existingChat) {
+      navigate(`/apps/messenger/${existingChat.id}`);
+      dispatch(setSelectedChatId(existingChat.id));
+      scrollToTop();
+    } else {
+      const sortedIds = [contactId, userId].sort();
+      const chat = await createMessengerChat(sortedIds);
+      if (chat) {
+        dispatch(setSelectedChatId(chat.id));
+        navigate(`/apps/messenger/${chat.id}`);
+        scrollToTop();
+      }
+    }
+  };
+
+  if (loading) {
+    return (
+      <Box className="flex justify-center py-12" sx={{ width: 70, minWidth: 70 }}>
+        <CircularProgress color="secondary" />
+      </Box>
+    );
+  }
+
+  return (
+    <Root
+      className={clsx('flex shrink-0 flex-col overflow-y-auto py-8 overscroll-contain', className)}
+      ref={contactListScroll}
+      option={{ suppressScrollX: true, wheelPropagation: false }}
+    >
+      {contacts.length > 0 && (
+        <motion.div
+          variants={container}
+          initial="hidden"
+          animate="show"
+          className="flex flex-col shrink-0"
+        >
+          {/* Chats that already exist */}
+          {chatListContacts.map((contact) => (
+            <motion.div variants={item} key={contact.id}>
+              <ContactButton
+                contact={contact}
+                selectedChatId={selectedChatId}
+                onClick={() => handleContactClick(contact.id)}
+              />
+            </motion.div>
+          ))}
+
+          <Divider className="mx-24 my-8" />
+
+          {/* Contacts without existing chats */}
+          {contacts.map((contact) => {
+            const exists = chatList.some((chat) => chat.contactIds.includes(contact.id));
+            if (exists) return null;
+
+            return (
+              <motion.div variants={item} key={contact.id}>
+                <ContactButton
+                  contact={contact}
+                  selectedChatId={selectedChatId}
+                  onClick={() => handleContactClick(contact.id)}
+                />
+              </motion.div>
+            );
+          })}
+        </motion.div>
+      )}
+    </Root>
+  );
 }
 
-export default memo(ContactList);
+// Supabase create chat function
+async function createMessengerChat(contactIds: string[]) {
+  const { data, error } = await supabaseClient
+    .from('messenger_chat')
+    .insert([{ contactIds }])
+    .select()
+    .single();
+
+  if (error) {
+    console.error('Failed to create chat:', error.message);
+    return null;
+  }
+
+  return data;
+}
+
+export default ContactList;

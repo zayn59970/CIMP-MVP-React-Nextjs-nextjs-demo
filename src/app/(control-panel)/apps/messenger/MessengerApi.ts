@@ -144,7 +144,10 @@ export type Contact = {
 	id: string;
 	avatar?: string | null;
 	name: string;
+	displayName: string;
 	about: string;
+	email: string;
+	photoURL: string;
 	details: {
 		emails: {
 			email: string;
@@ -183,6 +186,7 @@ export type Message = {
 	contactId: string;
 	value: string;
 	createdAt: string;
+	image: string;
 };
 
 export type Task = {

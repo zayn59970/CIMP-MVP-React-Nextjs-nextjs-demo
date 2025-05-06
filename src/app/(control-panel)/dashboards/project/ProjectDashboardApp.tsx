@@ -12,7 +12,9 @@ import HomeTab from './tabs/home/HomeTab';
 import TeamTab from './tabs/team/TeamTab';
 import BudgetTab from './tabs/budget/BudgetTab';
 import { useGetProjectDashboardWidgetsQuery } from './ProjectDashboardApi';
-
+import { useSession } from 'next-auth/react';
+import { supabaseClient } from "@/utils/supabaseClient";
+ 
 const Root = styled(FusePageSimple)(({ theme }) => ({
 	'& .FusePageSimple-header': {
 		backgroundColor: theme.palette.background.paper,
@@ -51,10 +53,10 @@ function ProjectDashboardApp() {
 								value="home"
 								label="Home"
 							/>
-							<FuseTab
+							{/* <FuseTab
 								value="budget"
 								label="Budget"
-							/>
+							/> */}
 							<FuseTab
 								value="team"
 								label="Team"
@@ -62,7 +64,7 @@ function ProjectDashboardApp() {
 						</FuseTabs>
 					</div>
 					{tabValue === 'home' && <HomeTab />}
-					{tabValue === 'budget' && <BudgetTab />}
+					{/* {tabValue === 'budget' && <BudgetTab />} */}
 					{tabValue === 'team' && <TeamTab />}
 				</div>
 			}

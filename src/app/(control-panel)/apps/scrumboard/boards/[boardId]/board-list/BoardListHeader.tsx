@@ -24,6 +24,7 @@ import {
 } from '../../../ScrumboardApi';
 import useUpdateScrumboardBoard from '../../../hooks/useUpdateScrumboardBoard';
 import { supabaseClient } from "@/utils/supabaseClient";
+import { useSession } from 'next-auth/react';
 
 type FormType = {
 	title: ScrumboardList['title'];
@@ -41,19 +42,22 @@ type BoardListHeaderProps = {
 	cardIds: string[];
 	handleProps: DraggableProvidedDragHandleProps | null | undefined;
 	className?: string;
+	handleCardAdded: () => void;
 };
 
 /**
  * The board list header component.
  */
 function BoardListHeader(props: BoardListHeaderProps) {
-	const { list, cardIds, className, handleProps } = props;
+	const { list, cardIds, className, handleProps,handleCardAdded } = props;
+	const { data } = useSession();
+
+	const userRole = data?.db?.role?.[0] || "unknown-user";
+	const userId = data?.db?.id || "unknown-user-id";
+	const isAdmin = userRole === "admin";
   
 	const [anchorEl, setAnchorEl] = useState<null | HTMLButtonElement>(null);
 	const [formOpen, setFormOpen] = useState(false);
-  
-	const [removeList] = useDeleteScrumboardBoardListMutation();
-	const [updateList] = useUpdateScrumboardBoardListMutation();
   
 	const { control, formState, handleSubmit, reset } = useForm<FormType>({
 	  mode: 'onChange',
@@ -99,8 +103,13 @@ function BoardListHeader(props: BoardListHeaderProps) {
 	async function removeListAndUpdateBoard() {
 	  try {
 		// Remove the list
-		await removeList(list.id).unwrap();
-  
+		const { error: deleteError } = await supabaseClient
+		  .from('scrumboard_list')
+		  .delete()
+		  .eq('id', list.id);  
+		  if (deleteError) {
+			console.error('Error updating board:', deleteError.message);
+		  }
 		// Fetch the current board to get the latest lists
 		const { data: board, error: fetchError } = await supabaseClient
 		  .from('scrumboard_board')
@@ -123,7 +132,8 @@ function BoardListHeader(props: BoardListHeaderProps) {
 		if (updateError) {
 		  console.error('Error updating board:', updateError.message);
 		}
-  
+
+		handleCardAdded();
 		handleMenuClose();
 	  } catch (error) {
 		console.error('Unexpected error:', error);
@@ -132,8 +142,15 @@ function BoardListHeader(props: BoardListHeaderProps) {
   
 	async function onSubmit(newData: FormType) {
 	  try {
-		await updateList({ ...list, title: newData.title });
+		const { error: updateError } = await supabaseClient
+		  .from('scrumboard_list')
+		  .update({ title: newData.title })
+		  .eq('id', list.id);
+		  if (updateError) {
+			console.error('Error updating board:', updateError.message);
+		  }
 		handleCloseForm();
+		handleCardAdded();
 	  } catch (error) {
 		console.error('Error updating list:', error);
 	  }
@@ -197,13 +214,15 @@ function BoardListHeader(props: BoardListHeaderProps) {
 			>
 			  {cardIds.length}
 			</Box>
+			{isAdmin && 
 			<IconButton
-			  aria-haspopup="true"
-			  onClick={handleMenuClick}
-			  size="small"
+			aria-haspopup="true"
+			onClick={handleMenuClick}
+			size="small"
 			>
 			  <FuseSvgIcon size={20}>heroicons-outline:ellipsis-vertical</FuseSvgIcon>
 			</IconButton>
+			}
 			<Menu
 			  id="actions-menu"
 			  anchorEl={anchorEl}

@@ -11,18 +11,16 @@ import { useGetScrumboardMembersQuery } from '../../../../../ScrumboardApi';
 type MembersMenuProps = {
 	memberIds: string[];
 	onToggleMember: (memberId: string) => void;
+	members: any[];
 };
 
 /**
  * The members menu component.
  */
 function MembersMenu(props: MembersMenuProps) {
-	const { memberIds, onToggleMember } = props;
+	const { memberIds, onToggleMember, members } = props;
 
 	const [anchorEl, setAnchorEl] = useState<null | HTMLButtonElement>(null);
-
-	const { data: members } = useGetScrumboardMembersQuery();
-
 	function handleMenuOpen(event: MouseEvent<HTMLButtonElement>) {
 		setAnchorEl(event.currentTarget);
 	}
@@ -57,9 +55,10 @@ function MembersMenu(props: MembersMenuProps) {
 								<Checkbox checked={memberIds.includes(member.id)} />
 								<Avatar
 									className="w-32 h-32"
-									src={member.avatar}
+									src={member.photoURL}
+									alt={member.displayName}
 								/>
-								<ListItemText className="mx-8">{member.name}</ListItemText>
+								<ListItemText className="mx-8">{member.displayName}</ListItemText>
 							</MenuItem>
 						);
 					})}

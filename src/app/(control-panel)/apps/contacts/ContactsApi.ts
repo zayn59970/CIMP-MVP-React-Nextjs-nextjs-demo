@@ -138,6 +138,9 @@ export type Contact = {
 	avatar?: string;
 	background?: string;
 	name: string;
+	displayName?: string;
+	email?: string;
+	photoURL?: string;
 	emails?: ContactEmail[];
 	phoneNumbers?: ContactPhoneNumber[];
 	title?: string;
@@ -211,23 +214,25 @@ export const selectGroupedFilteredContacts = (contacts: Contact[]) =>
 			return [];
 		}
 
-		const sortedContacts = [...contacts]?.sort((a, b) =>
-			a?.name?.localeCompare(b.name, 'es', { sensitivity: 'base' })
-		);
+		// Use displayName or fallback to email
+		const sortedContacts = [...contacts]?.sort((a, b) => {
+			const nameA = a.displayName || a.email || '';
+			const nameB = b.displayName || b.email || '';
+			return nameA.localeCompare(nameB, 'es', { sensitivity: 'base' });
+		});
 
-		const groupedObject: Record<string, GroupedContacts> = sortedContacts?.reduce<AccumulatorType>((r, e) => {
-			// get first letter of name of current element
-			const group = e.name[0];
+		const groupedObject: Record<string, GroupedContacts> = sortedContacts.reduce<AccumulatorType>((acc, contact) => {
+			// Use displayName or fallback to email
+			const name = contact.displayName || contact.email || '';
+			const group = name.charAt(0).toUpperCase();
 
-			// if there is no property in accumulator with this letter create it
-			if (!r[group]) r[group] = { group, children: [e] };
-			// if there is push current element to children array for that letter
-			else {
-				r[group]?.children?.push(e);
+			if (!acc[group]) {
+				acc[group] = { group, children: [contact] };
+			} else {
+				acc[group].children?.push(contact);
 			}
 
-			// return accumulator
-			return r;
+			return acc;
 		}, {});
 
 		return groupedObject;

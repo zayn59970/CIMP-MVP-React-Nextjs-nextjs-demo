@@ -6,6 +6,7 @@ import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
 import clsx from 'clsx';
 import useThemeMediaQuery from '@fuse/hooks/useThemeMediaQuery';
 import SettingsAppNavigation from './SettingsAppNavigation';
+import { useSession } from 'next-auth/react';
 
 const Root = styled('div')(({ theme }) => ({
 	'&  .navigation': {
@@ -46,6 +47,10 @@ type SettingsAppSidebarContentProps = {
 
 function SettingsAppSidebarContent(props: SettingsAppSidebarContentProps) {
 	const { className, onSetSidebarOpen } = props;
+	const { data } = useSession();
+
+	const userRole = data?.db?.role?.[0] || "unknown-user";
+	const isAdmin = userRole === "admin";
 	const isMobile = useThemeMediaQuery((theme) => theme.breakpoints.down('lg'));
 
 	return (
@@ -62,7 +67,9 @@ function SettingsAppSidebarContent(props: SettingsAppSidebarContentProps) {
 					</IconButton>
 				)}
 			</div>
-			<FuseNavigation navigation={SettingsAppNavigation.children} />
+			<FuseNavigation navigation={ SettingsAppNavigation.children.filter(
+      (item) => item.id !== 'apps.settings.team' || isAdmin
+    )} />
 		</Root>
 	);
 }

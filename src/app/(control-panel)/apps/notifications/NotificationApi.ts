@@ -91,18 +91,34 @@ export const addTagTypes = ['notifications', 'notification'] as const;
 
 const NotificationApi = {
   // Get all notifications
-  useGetAllNotificationsQuery: async () => {
+  useGetAllNotificationsQuery: async (userId: string) => {
     try {
-      const { data, error } = await supabaseClient
-        .from('notification') // Replace with your Supabase table name
-        .select('*');
-
+      // Step 1: Fetch dismissed notification IDs for the user
+      const { data: dismissedData, error: dismissedError } = await supabaseClient
+        .from('dismissed_notifications')
+        .select('notification_id')
+        .eq('user_id', userId);
+  
+      if (dismissedError) throw dismissedError;
+  
+      const dismissedIds = (dismissedData || []).map((item) => item.notification_id);
+  
+      // Step 2: Fetch notifications NOT in those IDs
+      let query = supabaseClient.from('notification').select('*');
+  
+      if (dismissedIds.length > 0) {
+        query = query.not('id', 'in', `(${dismissedIds.join(',')})`);
+      }
+  
+      const { data, error } = await query;
+  
       if (error) throw error;
+  
       return { data: data || [], isLoading: false, error: null };
     } catch (error) {
       return { data: null, isLoading: false, error };
     }
-  },
+  },  
 
   // Create a notification
   useCreateNotificationMutation: async (notification: Notification) => {
@@ -163,6 +179,38 @@ const NotificationApi = {
       return { data: null, isLoading: false, error };
     }
   },
+   useGetUndismissedNotificationsQuery : async (userId: string) => {
+    try {
+      const { data, error } = await supabaseClient
+        .from('notification')
+        .select('*')
+        .not(
+          'id',
+          'in',
+          supabaseClient
+            .from('dismissed_notifications')
+            .select('notification_id')
+            .eq('user_id', userId)
+        );
+  
+      if (error) throw error;
+      return { data, isLoading: false, error: null };
+    } catch (error) {
+      return { data: null, isLoading: false, error };
+    }
+  },
+   useDismissNotificationMutation : async (userId: string, notificationId: string) => {
+    try {
+      const { error } = await supabaseClient
+        .from('dismissed_notifications')
+        .insert({ user_id: userId, notification_id: notificationId });
+  
+      if (error) throw error;
+      return { data: true, error: null };
+    } catch (error) {
+      return { data: null, error };
+    }
+  }
 };
 
 export const {
@@ -171,6 +219,8 @@ export const {
   useGetNotificationQuery,
   useDeleteNotificationsMutation,
   useDeleteNotificationMutation,
+  useGetUndismissedNotificationsQuery,
+  useDismissNotificationMutation,
 } = NotificationApi;
 
 // Type Definitions

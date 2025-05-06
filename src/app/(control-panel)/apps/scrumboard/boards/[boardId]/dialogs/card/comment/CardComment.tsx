@@ -1,3 +1,4 @@
+import { useSession } from "next-auth/react";
 import { Controller, useForm } from 'react-hook-form';
 import _ from 'lodash';
 import Avatar from '@mui/material/Avatar';
@@ -20,11 +21,6 @@ const schema = z.object({
 	message: z.string().nonempty('You must enter a comment')
 });
 
-const defaultValues = {
-	idMember: 'baa88231-0ee6-4028-96d5-7f187e0f4cd5',
-	message: ''
-};
-
 type CardCommentProps = {
 	onCommentAdd: (comment: ScrumboardComment) => void;
 };
@@ -33,8 +29,20 @@ type CardCommentProps = {
  * The card comment component.
  */
 function CardComment(props: CardCommentProps) {
+
 	const { onCommentAdd } = props;
-	const user = useSelectMember(defaultValues.idMember);
+ 
+ const { data } = useSession();
+ const userId = data?.db.id;
+ 
+ const defaultValues = {
+	 idMember: userId,
+	 message: '',
+	 type:'comment',
+	 time: Math.floor(Date.now() / 1000),
+ 
+ };
+	const user = data?.db;
 
 	const { control, formState, handleSubmit, reset } = useForm<FormType>({
 		mode: 'onChange',
@@ -60,8 +68,8 @@ function CardComment(props: CardCommentProps) {
 		>
 			<Avatar
 				className="w-32 h-32 mx-8"
-				alt={user.name}
-				src={user.avatar}
+				alt={user.displayName}
+				src={user.photoURL}
 			/>
 			<div className="flex flex-col items-start flex-1 mx-8">
 				<Controller

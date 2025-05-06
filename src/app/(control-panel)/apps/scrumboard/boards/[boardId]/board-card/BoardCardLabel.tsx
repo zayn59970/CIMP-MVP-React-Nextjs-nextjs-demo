@@ -3,7 +3,6 @@ import Chip from '@mui/material/Chip';
 import useSelectLabel from '../../../hooks/useSelectLabel';
 
 type BoardCardLabelProps = {
-	boardId: string;
 	id: string;
 };
 
@@ -11,8 +10,9 @@ type BoardCardLabelProps = {
  * The board card label component.
  */
 function BoardCardLabel(props: BoardCardLabelProps) {
-	const { boardId, id } = props;
-	const label = useSelectLabel({ boardId, id });
+	const { id } = props;
+	const {label} = useSelectLabel({ id });
+	
 
 	if (!label) {
 		return null;

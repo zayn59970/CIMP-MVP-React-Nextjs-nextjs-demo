@@ -4,7 +4,6 @@ import { Typography } from '@mui/material';
 import FuseLoading from '@fuse/core/FuseLoading';
 import { CourseStep,CourseStepContent as Content, useGetAcademyCourseStepContentQuery } from '../../AcademyApi';
 import { useEffect, useState } from 'react';
-import PdfViewer from './PdfViewer';
 
 type CourseStepContentProps = {
 	step: CourseStep;
@@ -12,7 +11,6 @@ type CourseStepContentProps = {
 
 function CourseStepContent(props: CourseStepContentProps) {
 	const { step } = props;
-	const pdfUrl = 'https://qleyfxeyojompzmypiop.supabase.co/storage/v1/object/public/course-images//Daily%20Report%203-4-2025.pdf';  // Replace with your PDF URL
 
 	const theme = useTheme();
 	const [stepContent, setStepContent] = useState<Content>();
@@ -35,7 +33,6 @@ function CourseStepContent(props: CourseStepContentProps) {
 		fetctStepContent();
 	  }, []);
 
-console.log("Step Content", stepContent);
 
 	if (loading) {
 		return <FuseLoading />;
@@ -56,12 +53,11 @@ console.log("Step Content", stepContent);
 			>
 				{step?.subtitle}
 			</Typography>
-			<PdfViewer pdfUrl={pdfUrl} />
-			{/* <div
+			<div
 				className="prose prose-sm dark:prose-invert w-full max-w-full"
 				dangerouslySetInnerHTML={{ __html: stepContent?.html || '' }}
 				dir={theme.direction}
-			/> */}
+			/>
 		</Paper>
 	);
 }

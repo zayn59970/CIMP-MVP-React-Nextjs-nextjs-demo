@@ -29,14 +29,18 @@ const defaultValues = {
 const schema = z.object({
   title: z.string().nonempty('You must enter a title'),
 });
-
+type BoardListHeaderProps = {
+  refreshKey: () => void;
+};
 /**
  * The board add list component.
  */
-function BoardAddList() {
+function BoardAddList(props: BoardListHeaderProps) {
+  const { refreshKey } = props;
+
   const routeParams = useParams();
   const { boardId } = routeParams as { boardId: string };
-
+ 
   const [formOpen, setFormOpen] = useState(false);
 
   const { control, formState, handleSubmit, reset } = useForm<FormType>({
@@ -99,7 +103,7 @@ function BoardAddList() {
         console.error('Error updating board:', updateError.message);
         return;
       }
-
+      refreshKey();
       // Close the form after successful operation
       handleCloseForm();
     } catch (error) {

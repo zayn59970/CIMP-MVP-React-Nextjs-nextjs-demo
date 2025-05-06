@@ -57,6 +57,7 @@ function AuthJsCredentialsSignInForm() {
 //     // Redirect on successful login
 //     router.push('/dashboards/project');
 //   }
+
 async function onSubmit(formData: FormType) {
   const { email, password } = formData;
 
@@ -71,6 +72,7 @@ async function onSubmit(formData: FormType) {
   if (res?.error) {
     setError('root', { type: 'manual', message: res.error || 'Failed to sign in' });
   } else {
+	console.log(res);
     // Redirect on successful login
     router.push('/dashboards/project');
   }

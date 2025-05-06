@@ -146,6 +146,8 @@ export type SettingsAccount = {
 	phone?: string;
 	country?: string;
 	language?: string;
+	userId?: string;
+	photoURL?: string;
 };
 
 export type SettingsNotifications = {

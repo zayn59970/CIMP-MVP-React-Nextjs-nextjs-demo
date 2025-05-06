@@ -5,25 +5,20 @@ import ListItemText from '@mui/material/ListItemText';
 import MenuItem from '@mui/material/MenuItem';
 import { useState, MouseEvent } from 'react';
 import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
-import { useParams } from 'next/navigation';
 import ToolbarMenu from './ToolbarMenu';
-import { useGetScrumboardBoardLabelsQuery } from '../../../../../ScrumboardApi';
 
 type LabelsMenuProps = {
 	labels: string[];
 	onToggleLabel: (labelId: string) => void;
+	boardLabels: any[];
 };
 
 /**
  * The labels menu component.
  */
 function LabelsMenu(props: LabelsMenuProps) {
-	const { labels, onToggleLabel } = props;
+	const { labels, onToggleLabel,boardLabels } = props;
 
-	const routeParams = useParams();
-	const { boardId } = routeParams as { boardId: string };
-
-	const { data: labelsArr } = useGetScrumboardBoardLabelsQuery(boardId);
 
 	const [anchorEl, setAnchorEl] = useState<null | HTMLButtonElement>(null);
 
@@ -49,7 +44,7 @@ function LabelsMenu(props: LabelsMenuProps) {
 				onClose={handleMenuClose}
 			>
 				<div>
-					{labelsArr?.map((label) => {
+					{boardLabels?.map((label) => {
 						return (
 							<MenuItem
 								className="px-8"

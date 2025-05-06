@@ -2,13 +2,15 @@ import Dialog from '@mui/material/Dialog';
 import { useAppDispatch, useAppSelector } from 'src/store/hooks';
 import { closeCardDialog, selectCardDialogOpen } from '../../../../scrumboardSlice';
 import BoardCardForm from './BoardCardForm';
+import { useRef, useState } from 'react';
 
 /**
  * The board card dialog component.
  */
-function BoardCardDialog() {
+function BoardCardDialog({refreshKey}: any) {
 	const dispatch = useAppDispatch();
 	const cardDialogOpen = useAppSelector(selectCardDialogOpen);
+	
 
 	return (
 		<Dialog
@@ -18,7 +20,7 @@ function BoardCardDialog() {
 			onClose={() => dispatch(closeCardDialog())}
 			open={cardDialogOpen}
 		>
-			<BoardCardForm />
+			<BoardCardForm refreshKey={refreshKey}/>
 		</Dialog>
 	);
 }

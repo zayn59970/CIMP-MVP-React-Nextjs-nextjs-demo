@@ -24,7 +24,7 @@ function ContactsList() {
 	const [isLoading, setIsLoading] = useState(true);
 	const getData = async () =>{
 		const { data, error } = await supabaseClient
-		.from('contact')
+		.from('users')
 		.select('*');
 		if (error) {
 			console.log('error', error);

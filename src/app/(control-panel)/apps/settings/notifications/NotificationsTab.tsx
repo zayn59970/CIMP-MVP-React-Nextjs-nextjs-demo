@@ -67,232 +67,233 @@ function NotificationsTab() {
 	}
 
 	return (
-		<div className="w-full max-w-3xl">
-			<form onSubmit={handleSubmit(onSubmit)}>
-				<Typography className="w-full text-xl">Alerts</Typography>
-				<div className="mt-8 grid w-full grid-cols-1 gap-6">
-					<div className="flex items-center justify-between">
-						<Controller
-							name="communication"
-							control={control}
-							render={({ field: { onChange, value } }) => (
-								<div className="flex flex-col w-full">
-									<FormControlLabel
-										classes={{
-											root: 'm-0',
-											label: 'flex flex-1'
-										}}
-										labelPlacement="start"
-										label="Communication"
-										control={
-											<Switch
-												onChange={(ev) => {
-													onChange(ev.target.checked);
-												}}
-												checked={value}
-												name="askPasswordChange"
-											/>
-										}
-									/>
-									<FormHelperText>Get news, announcements, and product updates.</FormHelperText>
-								</div>
-							)}
-						/>
-					</div>
-					<div className="flex items-center justify-between">
-						<Controller
-							name="security"
-							control={control}
-							render={({ field: { onChange, value } }) => (
-								<div className="flex flex-col w-full">
-									<FormControlLabel
-										classes={{
-											root: 'm-0',
-											label: 'flex flex-1'
-										}}
-										labelPlacement="start"
-										label="Security"
-										control={
-											<Switch
-												onChange={(ev) => {
-													onChange(ev.target.checked);
-												}}
-												checked={value}
-												name="security"
-											/>
-										}
-									/>
-									<FormHelperText>
-										Get important notifications about your account security.
-									</FormHelperText>
-								</div>
-							)}
-						/>
-					</div>
-					<div className="flex items-center justify-between">
-						<Controller
-							name="meetups"
-							control={control}
-							render={({ field: { onChange, value } }) => (
-								<div className="flex flex-col w-full">
-									<FormControlLabel
-										classes={{
-											root: 'm-0',
-											label: 'flex flex-1'
-										}}
-										labelPlacement="start"
-										label="Meetups"
-										control={
-											<Switch
-												onChange={(ev) => {
-													onChange(ev.target.checked);
-												}}
-												checked={value}
-												name="meetups"
-											/>
-										}
-									/>
-									<FormHelperText>
-										Get an email when a Meetup is posted close to my location.
-									</FormHelperText>
-								</div>
-							)}
-						/>
-					</div>
-				</div>
-				<div className="my-40 border-t" />
-				<Typography className="w-full text-xl">Account Activity</Typography>
-				<Typography className="mt-24 w-full font-medium">Email me when:</Typography>
-				<div className="mt-12 grid w-full grid-cols-1 gap-4">
-					<div className="flex items-center justify-between">
-						<Controller
-							name="comments"
-							control={control}
-							render={({ field: { onChange, value } }) => (
-								<div className="flex flex-col w-full">
-									<FormControlLabel
-										classes={{
-											root: 'm-0',
-											label: 'flex flex-1'
-										}}
-										labelPlacement="start"
-										label="Someone comments on one of my items"
-										control={
-											<Switch
-												onChange={(ev) => {
-													onChange(ev.target.checked);
-												}}
-												checked={value}
-												name="comments"
-											/>
-										}
-									/>
-								</div>
-							)}
-						/>
-					</div>
-					<div className="flex items-center justify-between">
-						<Controller
-							name="mention"
-							control={control}
-							render={({ field: { onChange, value } }) => (
-								<div className="flex flex-col w-full">
-									<FormControlLabel
-										classes={{
-											root: 'm-0',
-											label: 'flex flex-1'
-										}}
-										labelPlacement="start"
-										label="Someone mentions me"
-										control={
-											<Switch
-												onChange={(ev) => {
-													onChange(ev.target.checked);
-												}}
-												checked={value}
-												name="mention"
-											/>
-										}
-									/>
-								</div>
-							)}
-						/>
-					</div>
-					<div className="flex items-center justify-between">
-						<Controller
-							name="follow"
-							control={control}
-							render={({ field: { onChange, value } }) => (
-								<div className="flex flex-col w-full">
-									<FormControlLabel
-										classes={{
-											root: 'm-0',
-											label: 'flex flex-1'
-										}}
-										labelPlacement="start"
-										label="Someone follows me"
-										control={
-											<Switch
-												onChange={(ev) => {
-													onChange(ev.target.checked);
-												}}
-												checked={value}
-												name="follow"
-											/>
-										}
-									/>
-								</div>
-							)}
-						/>
-					</div>
-					<div className="flex items-center justify-between">
-						<Controller
-							name="inquiry"
-							control={control}
-							render={({ field: { onChange, value } }) => (
-								<div className="flex flex-col w-full">
-									<FormControlLabel
-										classes={{
-											root: 'm-0',
-											label: 'flex flex-1'
-										}}
-										labelPlacement="start"
-										label="Someone replies to my job posting"
-										control={
-											<Switch
-												onChange={(ev) => {
-													onChange(ev.target.checked);
-												}}
-												checked={value}
-												name="comments"
-											/>
-										}
-									/>
-								</div>
-							)}
-						/>
-					</div>
-				</div>
-				<Divider className="mb-40 mt-44 border-t" />
-				<div className="flex items-center justify-end space-x-8">
-					<Button
-						variant="outlined"
-						disabled={_.isEmpty(dirtyFields)}
-						onClick={() => reset(notificationSettings)}
-					>
-						Cancel
-					</Button>
-					<Button
-						variant="contained"
-						color="secondary"
-						disabled={_.isEmpty(dirtyFields) || !isValid}
-						type="submit"
-					>
-						Save
-					</Button>
-				</div>
-			</form>
-		</div>
+		<></>
+		// <div className="w-full max-w-3xl">
+		// 	<form onSubmit={handleSubmit(onSubmit)}>
+		// 		<Typography className="w-full text-xl">Alerts</Typography>
+		// 		<div className="mt-8 grid w-full grid-cols-1 gap-6">
+		// 			<div className="flex items-center justify-between">
+		// 				<Controller
+		// 					name="communication"
+		// 					control={control}
+		// 					render={({ field: { onChange, value } }) => (
+		// 						<div className="flex flex-col w-full">
+		// 							<FormControlLabel
+		// 								classes={{
+		// 									root: 'm-0',
+		// 									label: 'flex flex-1'
+		// 								}}
+		// 								labelPlacement="start"
+		// 								label="Communication"
+		// 								control={
+		// 									<Switch
+		// 										onChange={(ev) => {
+		// 											onChange(ev.target.checked);
+		// 										}}
+		// 										checked={value}
+		// 										name="askPasswordChange"
+		// 									/>
+		// 								}
+		// 							/>
+		// 							<FormHelperText>Get news, announcements, and product updates.</FormHelperText>
+		// 						</div>
+		// 					)}
+		// 				/>
+		// 			</div>
+		// 			<div className="flex items-center justify-between">
+		// 				<Controller
+		// 					name="security"
+		// 					control={control}
+		// 					render={({ field: { onChange, value } }) => (
+		// 						<div className="flex flex-col w-full">
+		// 							<FormControlLabel
+		// 								classes={{
+		// 									root: 'm-0',
+		// 									label: 'flex flex-1'
+		// 								}}
+		// 								labelPlacement="start"
+		// 								label="Security"
+		// 								control={
+		// 									<Switch
+		// 										onChange={(ev) => {
+		// 											onChange(ev.target.checked);
+		// 										}}
+		// 										checked={value}
+		// 										name="security"
+		// 									/>
+		// 								}
+		// 							/>
+		// 							<FormHelperText>
+		// 								Get important notifications about your account security.
+		// 							</FormHelperText>
+		// 						</div>
+		// 					)}
+		// 				/>
+		// 			</div>
+		// 			<div className="flex items-center justify-between">
+		// 				<Controller
+		// 					name="meetups"
+		// 					control={control}
+		// 					render={({ field: { onChange, value } }) => (
+		// 						<div className="flex flex-col w-full">
+		// 							<FormControlLabel
+		// 								classes={{
+		// 									root: 'm-0',
+		// 									label: 'flex flex-1'
+		// 								}}
+		// 								labelPlacement="start"
+		// 								label="Meetups"
+		// 								control={
+		// 									<Switch
+		// 										onChange={(ev) => {
+		// 											onChange(ev.target.checked);
+		// 										}}
+		// 										checked={value}
+		// 										name="meetups"
+		// 									/>
+		// 								}
+		// 							/>
+		// 							<FormHelperText>
+		// 								Get an email when a Meetup is posted close to my location.
+		// 							</FormHelperText>
+		// 						</div>
+		// 					)}
+		// 				/>
+		// 			</div>
+		// 		</div>
+		// 		<div className="my-40 border-t" />
+		// 		<Typography className="w-full text-xl">Account Activity</Typography>
+		// 		<Typography className="mt-24 w-full font-medium">Email me when:</Typography>
+		// 		<div className="mt-12 grid w-full grid-cols-1 gap-4">
+		// 			<div className="flex items-center justify-between">
+		// 				<Controller
+		// 					name="comments"
+		// 					control={control}
+		// 					render={({ field: { onChange, value } }) => (
+		// 						<div className="flex flex-col w-full">
+		// 							<FormControlLabel
+		// 								classes={{
+		// 									root: 'm-0',
+		// 									label: 'flex flex-1'
+		// 								}}
+		// 								labelPlacement="start"
+		// 								label="Someone comments on one of my items"
+		// 								control={
+		// 									<Switch
+		// 										onChange={(ev) => {
+		// 											onChange(ev.target.checked);
+		// 										}}
+		// 										checked={value}
+		// 										name="comments"
+		// 									/>
+		// 								}
+		// 							/>
+		// 						</div>
+		// 					)}
+		// 				/>
+		// 			</div>
+		// 			<div className="flex items-center justify-between">
+		// 				<Controller
+		// 					name="mention"
+		// 					control={control}
+		// 					render={({ field: { onChange, value } }) => (
+		// 						<div className="flex flex-col w-full">
+		// 							<FormControlLabel
+		// 								classes={{
+		// 									root: 'm-0',
+		// 									label: 'flex flex-1'
+		// 								}}
+		// 								labelPlacement="start"
+		// 								label="Someone mentions me"
+		// 								control={
+		// 									<Switch
+		// 										onChange={(ev) => {
+		// 											onChange(ev.target.checked);
+		// 										}}
+		// 										checked={value}
+		// 										name="mention"
+		// 									/>
+		// 								}
+		// 							/>
+		// 						</div>
+		// 					)}
+		// 				/>
+		// 			</div>
+		// 			<div className="flex items-center justify-between">
+		// 				<Controller
+		// 					name="follow"
+		// 					control={control}
+		// 					render={({ field: { onChange, value } }) => (
+		// 						<div className="flex flex-col w-full">
+		// 							<FormControlLabel
+		// 								classes={{
+		// 									root: 'm-0',
+		// 									label: 'flex flex-1'
+		// 								}}
+		// 								labelPlacement="start"
+		// 								label="Someone follows me"
+		// 								control={
+		// 									<Switch
+		// 										onChange={(ev) => {
+		// 											onChange(ev.target.checked);
+		// 										}}
+		// 										checked={value}
+		// 										name="follow"
+		// 									/>
+		// 								}
+		// 							/>
+		// 						</div>
+		// 					)}
+		// 				/>
+		// 			</div>
+		// 			<div className="flex items-center justify-between">
+		// 				<Controller
+		// 					name="inquiry"
+		// 					control={control}
+		// 					render={({ field: { onChange, value } }) => (
+		// 						<div className="flex flex-col w-full">
+		// 							<FormControlLabel
+		// 								classes={{
+		// 									root: 'm-0',
+		// 									label: 'flex flex-1'
+		// 								}}
+		// 								labelPlacement="start"
+		// 								label="Someone replies to my job posting"
+		// 								control={
+		// 									<Switch
+		// 										onChange={(ev) => {
+		// 											onChange(ev.target.checked);
+		// 										}}
+		// 										checked={value}
+		// 										name="comments"
+		// 									/>
+		// 								}
+		// 							/>
+		// 						</div>
+		// 					)}
+		// 				/>
+		// 			</div>
+		// 		</div>
+		// 		<Divider className="mb-40 mt-44 border-t" />
+		// 		<div className="flex items-center justify-end space-x-8">
+		// 			<Button
+		// 				variant="outlined"
+		// 				disabled={_.isEmpty(dirtyFields)}
+		// 				onClick={() => reset(notificationSettings)}
+		// 			>
+		// 				Cancel
+		// 			</Button>
+		// 			<Button
+		// 				variant="contained"
+		// 				color="secondary"
+		// 				disabled={_.isEmpty(dirtyFields) || !isValid}
+		// 				type="submit"
+		// 			>
+		// 				Save
+		// 			</Button>
+		// 		</div>
+		// 	</form>
+		// </div>
 	);
 }
 

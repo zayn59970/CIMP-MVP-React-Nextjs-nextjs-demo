@@ -49,7 +49,7 @@ function MainSidebarMoreMenu(props: MainSidebarMoreMenuProps) {
 				>
 					Profile
 				</MenuItem>
-				<MenuItem onClick={handleMoreMenuClose}>Logout</MenuItem>
+				{/* <MenuItem onClick={handleMoreMenuClose}>Logout</MenuItem> */}
 			</Menu>
 		</div>
 	);

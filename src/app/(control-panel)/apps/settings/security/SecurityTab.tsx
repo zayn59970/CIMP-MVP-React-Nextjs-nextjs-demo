@@ -1,236 +1,288 @@
+// 'use client';
+
+// import { useForm, Controller } from 'react-hook-form';
+// import { zodResolver } from '@hookform/resolvers/zod';
+// import { z } from 'zod';
+// import { useState } from 'react';
+// import TextField from '@mui/material/TextField';
+// import InputAdornment from '@mui/material/InputAdornment';
+// import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
+// import Button from '@mui/material/Button';
+// import Typography from '@mui/material/Typography';
+// import Divider from '@mui/material/Divider';
+// import { supabaseClient } from '@/utils/supabaseClient';
+// import { useSession } from 'next-auth/react';
+
+// const schema = z.object({
+//   newPassword: z.string().min(6, 'Password must be at least 6 characters'),
+// });
+
+// type FormType = z.infer<typeof schema>;
+
+// function SecurityTab() {
+//   const { control, handleSubmit, formState, reset } = useForm<FormType>({
+//     defaultValues: {
+//       newPassword: '',
+//     },
+//     mode: 'all',
+//     resolver: zodResolver(schema),
+//   });
+
+//   const { isValid, dirtyFields, errors } = formState;
+//   const [message, setMessage] = useState<string | null>(null);
+//   const { data: session } = useSession();
+
+//   const onSubmit = async ({ newPassword }: FormType) => {
+//     const { error } = await supabaseClient.auth.updateUser({
+//       password: newPassword,
+//     });
+
+//     if (error) {
+//       setMessage(`Error: ${error.message}`);
+//     } else {
+//       setMessage('Password updated successfully');
+//       reset();
+//     }
+//   };
+
+//   return (
+//     <div className="w-full max-w-3xl">
+//       <form onSubmit={handleSubmit(onSubmit)}>
+//         <Typography className="text-xl mb-8">Change your password</Typography>
+//         <Controller
+//           name="newPassword"
+//           control={control}
+//           render={({ field }) => (
+//             <TextField
+//               {...field}
+//               label="New Password"
+//               type="password"
+//               fullWidth
+//               error={!!errors.newPassword}
+//               helperText={errors.newPassword?.message}
+//               InputProps={{
+//                 startAdornment: (
+//                   <InputAdornment position="start">
+//                     <FuseSvgIcon size={20}>heroicons-solid:key</FuseSvgIcon>
+//                   </InputAdornment>
+//                 ),
+//               }}
+//             />
+//           )}
+//         />
+
+//         {message && (
+//           <Typography className="mt-16" color={message.startsWith('Error') ? 'error' : 'primary'}>
+//             {message}
+//           </Typography>
+//         )}
+
+//         <Divider className="my-32" />
+
+//         <div className="flex justify-end space-x-8">
+//           <Button
+//             variant="outlined"
+//             onClick={() => reset()}
+//             disabled={!dirtyFields.newPassword}
+//           >
+//             Cancel
+//           </Button>
+//           <Button
+//             variant="contained"
+//             color="secondary"
+//             type="submit"
+//             disabled={!isValid}
+//           >
+//             Save
+//           </Button>
+//         </div>
+//       </form>
+//     </div>
+//   );
+// }
+
+// export default SecurityTab;
 'use client';
 
-import { Controller, useForm } from 'react-hook-form';
+import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import TextField from '@mui/material/TextField';
 import InputAdornment from '@mui/material/InputAdornment';
 import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
-import FormControlLabel from '@mui/material/FormControlLabel';
-import Switch from '@mui/material/Switch';
-import FormHelperText from '@mui/material/FormHelperText';
-import Divider from '@mui/material/Divider';
 import Button from '@mui/material/Button';
 import Typography from '@mui/material/Typography';
-import _ from 'lodash';
-import { useEffect } from 'react';
-import { SettingsSecurity, useGetSecuritySettingsQuery, useUpdateSecuritySettingsMutation } from '../SettingsApi';
+import Divider from '@mui/material/Divider';
+import { supabaseClient } from '@/utils/supabaseClient';
+import { useSession } from 'next-auth/react';
+import { useAppDispatch } from '@/store/hooks';
+import { showMessage } from '@fuse/core/FuseMessage/fuseMessageSlice';
+import { useState } from 'react';
 
-type FormType = SettingsSecurity;
-
-const defaultValues: FormType = {
-	id: '',
-	currentPassword: '',
-	newPassword: '',
-	twoStepVerification: false,
-	askPasswordChange: false
-};
-
-/**
- * Form Validation Schema
- */
 const schema = z.object({
-	currentPassword: z.string(),
-	newPassword: z.string().min(6, 'Password must be at least 6 characters').or(z.literal('')).optional(),
-	twoStepVerification: z.boolean(),
-	askPasswordChange: z.boolean()
+  currentPassword: z.string().min(1, 'Current password is required'),
+  newPassword: z.string().min(6, 'Password must be at least 6 characters'),
 });
 
-type ErrorRecord = {
-	name: keyof FormType;
-	message: string;
-};
+type FormType = z.infer<typeof schema>;
 
 function SecurityTab() {
-	const { data: securitySettings } = useGetSecuritySettingsQuery();
-	const [updateSecuritySettings, { error: updateError, isSuccess }] = useUpdateSecuritySettingsMutation<{
-		isSuccess: boolean;
-		error: ErrorRecord[];
-	}>();
+  const { control, handleSubmit, formState, reset } = useForm<FormType>({
+    defaultValues: {
+      currentPassword: '',
+      newPassword: '',
+    },
+    mode: 'all',
+    resolver: zodResolver(schema),
+  });
 
-	const { control, setError, reset, handleSubmit, formState } = useForm<FormType>({
-		defaultValues,
-		mode: 'all',
-		resolver: zodResolver(schema)
-	});
+  const { isValid, dirtyFields, errors } = formState;
+  const { data: session } = useSession();
+  const [failCount, setFailCount] = useState<number>(0);
+  const [showForgot, setShowForgot] = useState<boolean>(false);
+  const dispatch = useAppDispatch();
 
-	const { isValid, dirtyFields, errors } = formState;
+  const notify = (message: string, isError = false) => {
+    dispatch(
+      showMessage({
+        message,
+        variant: isError ? 'error' : 'success',
+        autoHideDuration: 3000,
+        anchorOrigin: { vertical: 'top', horizontal: 'right' },
+      })
+    );
+  };
 
-	useEffect(() => {
-		reset(securitySettings);
-	}, [securitySettings, reset]);
+  const onSubmit = async ({ currentPassword, newPassword }: FormType) => {
+    if (!session?.user?.email) {
+      notify('No user session found.', true);
+      return;
+    }
 
-	useEffect(() => {
-		reset({ ...securitySettings, currentPassword: '', newPassword: '' });
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [isSuccess]);
+    const { error: signInError } = await supabaseClient.auth.signInWithPassword({
+      email: session.user.email,
+      password: currentPassword,
+    });
 
-	useEffect(() => {
-		if (updateError) {
-			updateError?.map((err) => {
-				setError(err.name, { type: 'manual', message: err.message });
-				return undefined;
-			});
-		}
-	}, [updateError, setError]);
+    if (signInError) {
+      const attempts = failCount + 1;
+      setFailCount(attempts);
+      if (attempts >= 3) setShowForgot(true);
+      notify('Incorrect current password.', true);
+      return;
+    }
 
-	/**
-	 * Form Submit
-	 */
-	function onSubmit(formData: FormType) {
-		updateSecuritySettings(formData);
-	}
+    setFailCount(0);
+    setShowForgot(false);
 
-	return (
-		<div className="w-full max-w-3xl">
-			<form onSubmit={handleSubmit(onSubmit)}>
-				<div className="w-full">
-					<Typography className="text-xl">Change your password</Typography>
-					<Typography color="text.secondary">
-						You can only change your password twice within 24 hours!
-					</Typography>
-				</div>
-				<div className="mt-32 grid w-full gap-6 sm:grid-cols-4 space-y-32">
-					<div className="sm:col-span-4">
-						<Controller
-							name="currentPassword"
-							control={control}
-							render={({ field }) => (
-								<TextField
-									{...field}
-									label="Current password (default:changeme)"
-									type="password"
-									error={!!errors.currentPassword}
-									helperText={errors?.currentPassword?.message}
-									variant="outlined"
-									fullWidth
-									InputProps={{
-										startAdornment: (
-											<InputAdornment position="start">
-												<FuseSvgIcon size={20}>heroicons-solid:key</FuseSvgIcon>
-											</InputAdornment>
-										)
-									}}
-								/>
-							)}
-						/>
-					</div>
-					<div className="sm:col-span-4">
-						<Controller
-							name="newPassword"
-							control={control}
-							render={({ field }) => (
-								<TextField
-									{...field}
-									label="New password"
-									type="password"
-									error={!!errors.newPassword}
-									variant="outlined"
-									fullWidth
-									InputProps={{
-										startAdornment: (
-											<InputAdornment position="start">
-												<FuseSvgIcon size={20}>heroicons-solid:key</FuseSvgIcon>
-											</InputAdornment>
-										)
-									}}
-									helperText={errors?.newPassword?.message}
-								/>
-							)}
-						/>
-					</div>
-				</div>
+    const { error: updateError } = await supabaseClient.auth.updateUser({
+      password: newPassword,
+    });
 
-				<div className="my-40 border-t" />
-				<div className="w-full">
-					<Typography className="text-xl">Security preferences</Typography>
-					<Typography color="text.secondary">
-						Keep your account more secure with following preferences.
-					</Typography>
-				</div>
-				<div className="mt-32 grid w-full gap-6 sm:grid-cols-4 space-y-32">
-					<div className="flex items-center justify-between sm:col-span-4">
-						<Controller
-							name="twoStepVerification"
-							control={control}
-							render={({ field: { onChange, value } }) => (
-								<div className="flex flex-col w-full">
-									<FormControlLabel
-										classes={{ root: 'm-0', label: 'flex flex-1' }}
-										labelPlacement="start"
-										label="Enable 2-step authentication"
-										control={
-											<Switch
-												onChange={(ev) => {
-													onChange(ev.target.checked);
-												}}
-												checked={value}
-												name="twoStepVerification"
-											/>
-										}
-									/>
-									<FormHelperText>
-										Protects you against password theft by requesting an authentication code via SMS
-										on every login.
-									</FormHelperText>
-								</div>
-							)}
-						/>
-					</div>
-					<div className="flex items-center justify-between sm:col-span-4">
-						<Controller
-							name="askPasswordChange"
-							control={control}
-							render={({ field: { onChange, value } }) => (
-								<div className="flex flex-col w-full">
-									<FormControlLabel
-										classes={{
-											root: 'm-0',
-											label: 'flex flex-1'
-										}}
-										labelPlacement="start"
-										label="Ask to change password on every 6 months"
-										control={
-											<Switch
-												onChange={(ev) => {
-													onChange(ev.target.checked);
-												}}
-												checked={value}
-												name="askPasswordChange"
-											/>
-										}
-									/>
-									<FormHelperText>
-										A simple but an effective way to be protected against data leaks and password
-										theft.
-									</FormHelperText>
-								</div>
-							)}
-						/>
-					</div>
-				</div>
+    if (updateError) {
+      notify(`Failed to update password: ${updateError.message}`, true);
+    } else {
+      notify('Password updated successfully');
+      reset();
+    }
+  };
 
-				<Divider className="mb-40 mt-44 border-t" />
-				<div className="flex items-center justify-end space-x-8">
-					<Button
-						variant="outlined"
-						disabled={_.isEmpty(dirtyFields)}
-						onClick={() => reset(securitySettings)}
-					>
-						Cancel
-					</Button>
-					<Button
-						variant="contained"
-						color="secondary"
-						disabled={_.isEmpty(dirtyFields) || !isValid}
-						type="submit"
-					>
-						Save
-					</Button>
-				</div>
-			</form>
-		</div>
-	);
+  const handleForgotPassword = async () => {
+    const email = session?.user?.email;
+    if (!email) {
+      notify('No user email found for password reset.', true);
+      return;
+    }
+
+    const { error } = await supabaseClient.auth.resetPasswordForEmail(email);
+    if (error) {
+      notify(`Error sending reset email: ${error.message}`, true);
+    } else {
+      notify('Password reset email sent.');
+    }
+  };
+
+  return (
+    <div className="w-full max-w-3xl">
+      <form onSubmit={handleSubmit(onSubmit)}>
+        <Typography className="text-xl mb-8">Change your password</Typography>
+
+        <Controller
+          name="currentPassword"
+          control={control}
+          render={({ field }) => (
+            <TextField
+              {...field}
+              label="Current Password"
+              type="password"
+              fullWidth
+              error={!!errors.currentPassword}
+              helperText={errors.currentPassword?.message}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <FuseSvgIcon size={20}>heroicons-solid:lock-closed</FuseSvgIcon>
+                  </InputAdornment>
+                ),
+              }}
+            />
+          )}
+        />
+
+        <div className="mt-16" />
+
+        <Controller
+          name="newPassword"
+          control={control}
+          render={({ field }) => (
+            <TextField
+              {...field}
+              label="New Password"
+              type="password"
+              fullWidth
+              error={!!errors.newPassword}
+              helperText={errors.newPassword?.message}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <FuseSvgIcon size={20}>heroicons-solid:key</FuseSvgIcon>
+                  </InputAdornment>
+                ),
+              }}
+            />
+          )}
+        />
+
+        {showForgot && (
+          <div className="mt-16">
+            <Button variant="outlined" color="secondary" onClick={handleForgotPassword}>
+              Forgot Password?
+            </Button>
+          </div>
+        )}
+
+        <Divider className="my-32" />
+
+        <div className="flex justify-end space-x-8">
+          <Button
+            variant="outlined"
+            onClick={() => reset()}
+            disabled={!dirtyFields.newPassword && !dirtyFields.currentPassword}
+          >
+            Cancel
+          </Button>
+          <Button
+            variant="contained"
+            color="secondary"
+            type="submit"
+            disabled={!isValid}
+          >
+            Save
+          </Button>
+        </div>
+      </form>
+    </div>
+  );
 }
 
 export default SecurityTab;

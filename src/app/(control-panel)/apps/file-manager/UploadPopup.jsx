@@ -20,7 +20,7 @@ export default function UploadPopup({ open, onClose }) {
 
   useEffect(() => {
     async function fetchFolders() {
-      const response = await FileManagerApi.useGetFileManagerAllFolderItemsQuery();
+      const response = await FileManagerApi.useGetFileManagerAllFolderItemsQuery(createdBy);
       if (response.data) setFolders(response.data);
     }
     fetchFolders();

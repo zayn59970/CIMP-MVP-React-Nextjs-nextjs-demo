@@ -3,12 +3,13 @@ import { supabaseClient } from "@/utils/supabaseClient";
 export const addTagTypes = ["file_manager_folder"] as const;
 
 const FileManagerApi = {
-  useGetFileManagerAllFolderItemsQuery: async () => {
+  useGetFileManagerAllFolderItemsQuery: async (createdBy: string) => {
     try {
       const { data, error } = await supabaseClient
         .from("file_manager_item")
         .select("*")
-        .eq("type", "folder");
+        .eq("type", "folder")
+        .eq("createdBy", createdBy);
 
       if (error) throw error;
       return { data, isLoading: false, error: null };
@@ -16,12 +17,13 @@ const FileManagerApi = {
       return { data: null, isLoading: false, error };
     }
   },
-  useGetFileManagerAllFilesItemsQuery: async () => {
+  useGetFileManagerAllFilesItemsQuery: async (createdBy: string) => {
     try {
       const { data, error } = await supabaseClient
         .from("file_manager_item")
         .select("*")
-        .neq("type", "folder");
+        .neq("type", "folder")
+        .eq("createdBy", createdBy);
 
       if (error) throw error;
       return { data, isLoading: false, error: null };
@@ -29,11 +31,12 @@ const FileManagerApi = {
       return { data: null, isLoading: false, error };
     }
   },
-  useGetFileManagerAllItemsQuery: async () => {
+  useGetFileManagerAllItemsQuery: async (createdBy: string) => {
     try {
       const { data, error } = await supabaseClient
         .from("file_manager_item")
-        .select("*");
+        .select("*")
+        .eq("createdBy", createdBy);
 
       if (error) throw error;
       return { data, isLoading: false, error: null };

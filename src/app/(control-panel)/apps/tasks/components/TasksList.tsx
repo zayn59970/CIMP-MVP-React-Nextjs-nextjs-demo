@@ -1,131 +1,158 @@
-import Typography from '@mui/material/Typography';
-import List from '@mui/material/List';
-import { DragDropContext, Droppable, DroppableProvided, DropResult } from '@hello-pangea/dnd';
-import FuseLoading from '@fuse/core/FuseLoading';
-import { useEffect, useMemo, useState } from 'react';
-import _ from 'lodash';
-import TaskListItem from './TaskListItem';
-import SectionListItem from './SectionListItem';
-import { Task } from '../TasksApi';
-import useReorderTasks from '../hooks/useReorderTasks';
-import { supabaseClient } from '@/utils/supabaseClient';
+import Typography from "@mui/material/Typography";
+import List from "@mui/material/List";
+import {
+  DragDropContext,
+  Droppable,
+  DroppableProvided,
+  DropResult,
+} from "@hello-pangea/dnd";
+import FuseLoading from "@fuse/core/FuseLoading";
+import { useEffect, useMemo, useState } from "react";
+import _ from "lodash";
+import TaskListItem from "./TaskListItem";
+import SectionListItem from "./SectionListItem";
+import { Task } from "../TasksApi";
+import useReorderTasks from "../hooks/useReorderTasks";
+import { supabaseClient } from "@/utils/supabaseClient";
+import { useSession } from "next-auth/react";
 
 function TasksList() {
-	const [tasks, setTasks] = useState<Task[]>([]);
-	const [isLoading, setIsLoading] = useState(true);
-	const [error, setError] = useState<string | null>(null);
-	// const reorderList = useReorderTasks();
-	const { reorderTasks } = useReorderTasks();
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  // const reorderList = useReorderTasks();
+  const { data } = useSession();
 
-	const orderedTasks = useMemo(() => {
-		return _.merge([], tasks).sort((a: Task, b: Task) => a.order - b.order);
-	}, [tasks]);
+  const userRole = data?.db?.role?.[0] || "unknown-user";
+  const userId = data?.db?.id || "unknown-user-id";
+  const isAdmin = userRole === "admin";
+  const { reorderTasks } = useReorderTasks();
 
-	/** Fetch tasks from Supabase */
-	const fetchTasks = async () => {
-		setIsLoading(true);
-		const { data, error } = await supabaseClient.from('task').select('*');
+  const orderedTasks = useMemo(() => {
+    return _.merge([], tasks).sort((a: Task, b: Task) => a.order - b.order);
+  }, [tasks]);
 
-		if (error) {
-			setError(error.message);
-		} else {
-			setTasks(data);
-		}
+  /** Fetch tasks from Supabase */
+  const fetchTasks = async () => {
+    setIsLoading(true);
 
-		setIsLoading(false);
-	};
+    const query = supabaseClient.from("task").select("*");
 
-	/** Subscribe to real-time changes */
-	useEffect(() => {
-		fetchTasks();
+    if (!isAdmin) {
+      query.eq("assignedTo", userId);
+    }
 
-		// Create a real-time channel
-		const channel = supabaseClient
-			.channel('tasks')
-			.on(
-				'postgres_changes',
-				{ event: '*', schema: 'public', table: 'task' },
-				(payload) => {
-					console.log('Task Change Detected:', payload);
+    const { data, error } = await query;
 
-					setTasks((prevTasks: Task[]) => {
-						if (payload.eventType === 'INSERT') {
-							return [...prevTasks, payload.new as Task];
-						}
-						if (payload.eventType === 'UPDATE') {
-							return prevTasks.map((task) =>
-								task.id === (payload.new as Task).id ? (payload.new as Task) : task
-							);
-						}
-						if (payload.eventType === 'DELETE') {
-							return prevTasks.filter((task) => task.id !== (payload.old as Task).id);
-						}
-						return prevTasks;
-					});
-				}
-			)
-			.subscribe();
+    if (error) {
+      setError(error.message);
+    } else {
+      setTasks(data);
+    }
 
-		// Cleanup subscription on unmount
-		return () => {
-			channel.unsubscribe();
-		};
-	}, []);
+    setIsLoading(false);
+  };
 
-	if (isLoading) {
-		return <FuseLoading />;
-	}
+  /** Subscribe to real-time changes */
+  useEffect(() => {
+    fetchTasks();
 
-	if (!tasks || tasks.length === 0) {
-		return (
-			<div className="flex flex-1 items-center justify-center h-full">
-				<Typography color="text.secondary" variant="h5">
-					There are no tasks!
-				</Typography>
-			</div>
-		);
-	}
-	function onDragEnd(result: DropResult) {
-		const { source, destination } = result;
+    // Create a real-time channel
+    const channel = supabaseClient
+      .channel("tasks")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "task" },
+        (payload) => {
+          console.log("Task Change Detected:", payload);
 
-		if (!destination) {
-			return;
-		}
+          setTasks((prevTasks: Task[]) => {
+            if (payload.eventType === "INSERT") {
+              return [...prevTasks, payload.new as Task];
+            }
+            if (payload.eventType === "UPDATE") {
+              return prevTasks.map((task) =>
+                task.id === (payload.new as Task).id
+                  ? (payload.new as Task)
+                  : task
+              );
+            }
+            if (payload.eventType === "DELETE") {
+              return prevTasks.filter(
+                (task) => task.id !== (payload.old as Task).id
+              );
+            }
+            return prevTasks;
+          });
+        }
+      )
+      .subscribe();
 
-		const { index: destinationIndex } = destination;
-		const { index: sourceIndex } = source;
+    // Cleanup subscription on unmount
+    return () => {
+      channel.unsubscribe();
+    };
+  }, []);
 
-		if (destinationIndex === sourceIndex) {
-			return;
-		}
+  if (isLoading) {
+    return <FuseLoading />;
+  }
 
-		reorderTasks({ startIndex: sourceIndex, endIndex: destinationIndex });
-	}
+  if (!tasks || tasks.length === 0) {
+    const noTaskMessage = isAdmin
+      ? "There are no tasks in the system."
+      : "You have no assigned tasks.";
 
-	return (
-		<List className="w-full m-0 p-0 border-x-1">
-			<DragDropContext onDragEnd={onDragEnd}>
-				<Droppable droppableId="list" type="list" direction="vertical">
-					{(provided: DroppableProvided) => (
-						<>
-							<div ref={provided.innerRef}>
-								{orderedTasks.map((item) => {
-									if (item.type === 'task') {
-										return <TaskListItem key={item.id} data={item} />;
-									}
-									if (item.type === 'section') {
-										return <SectionListItem key={item.id} data={item} />;
-									}
-									return null;
-								})}
-							</div>
-							{provided.placeholder}
-						</>
-					)}
-				</Droppable>
-			</DragDropContext>
-		</List>
-	);
+    return (
+      <div className="flex flex-1 items-center justify-center h-full">
+        <Typography color="text.secondary" variant="h5">
+          {noTaskMessage}
+        </Typography>
+      </div>
+    );
+  }
+
+  function onDragEnd(result: DropResult) {
+    const { source, destination } = result;
+
+    if (!destination) {
+      return;
+    }
+
+    const { index: destinationIndex } = destination;
+    const { index: sourceIndex } = source;
+
+    if (destinationIndex === sourceIndex) {
+      return;
+    }
+
+    reorderTasks({ startIndex: sourceIndex, endIndex: destinationIndex });
+  }
+
+  return (
+    <List className="w-full m-0 p-0 border-x-1">
+      <DragDropContext onDragEnd={onDragEnd}>
+        <Droppable droppableId="list" type="list" direction="vertical">
+          {(provided: DroppableProvided) => (
+            <>
+              <div ref={provided.innerRef}>
+                {orderedTasks.map((item) => {
+                  if (item.type === "task") {
+                    return <TaskListItem key={item.id} data={item} />;
+                  }
+                  if (item.type === "section") {
+                    return <SectionListItem key={item.id} data={item} />;
+                  }
+                  return null;
+                })}
+              </div>
+              {provided.placeholder}
+            </>
+          )}
+        </Droppable>
+      </DragDropContext>
+    </List>
+  );
 }
 
 export default TasksList;

@@ -32,6 +32,7 @@ import {
   useUpdateNotesItemMutation,
 } from "../../NotesApi";
 import { selectNoteDialogId } from "../../notesAppSlice";
+import { useSession } from "next-auth/react";
 
 /**
  * Form Validation Schema
@@ -89,21 +90,23 @@ function NoteForm(props: NoteFormProps) {
   const { variant = "edit", onClose } = props;
   const [showList, setShowList] = useState(false);
   const routeParams = useParams<{ id: string; labelId: string }>();
-
+  const { data } = useSession();
+  const createdBy = data.db.id || "unknown-user";
   const [notes, setNotes] = useState<NotesNote[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const fetchTasks = async () => {
     setIsLoading(true);
-    const { data } = await useGetNotesListQuery(routeParams);
-
+    const { data, error } = await useGetNotesListQuery(routeParams); 
+  
     if (data) {
-      setNotes(data);
+      const filteredNotes = data.filter(note => note.createdBy === createdBy); 
+      setNotes(filteredNotes);
     } else if (error) {
       setError(error);
     }
-
+  
     setIsLoading(false);
   };
 
@@ -160,7 +163,11 @@ function NoteForm(props: NoteFormProps) {
    */
   const handleNewNote = async (data: NotesNote) => {
     try {
-      const res = await useCreateNotesItemMutation(data); // Handle async call and unwrap the result
+      const newNoteWithCreator = {
+        ...data,
+        createdBy, // Add createdBy here
+      };
+      const res = await useCreateNotesItemMutation(newNoteWithCreator); // Handle async call and unwrap the result
 	  console.log(res);
       resetForm();
     } catch (err) {

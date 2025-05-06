@@ -67,7 +67,7 @@ function ContactButton(props: ContactButtonProps) {
 
 	return (
 		<Root
-			title={contact.name}
+			title={contact.displayName || contact.email}
 			placement="left"
 			active={selectedChatId === contact.id ? 1 : 0}
 		>

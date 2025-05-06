@@ -6,6 +6,7 @@ import Divider from '@mui/material/Divider';
 import NavLinkAdapter from '@fuse/core/NavLinkAdapter';
 import ListItemButton from '@mui/material/ListItemButton';
 import { Contact } from '../ContactsApi';
+import { ListItem } from '@mui/material';
 
 type ContactListItemPropsType = {
 	contact: Contact;
@@ -19,21 +20,21 @@ function ContactListItem(props: ContactListItemPropsType) {
 
 	return (
 		<>
-			<ListItemButton
+			<ListItem
 				className="px-32 py-16"
 				sx={{ bgcolor: 'background.paper' }}
-				component={NavLinkAdapter}
-				to={`/apps/contacts/${contact.id}`}
+				// component={NavLinkAdapter}
+				// to={`/apps/contacts/${contact.id}`}
 			>
 				<ListItemAvatar>
 					<Avatar
-						alt={contact.name}
-						src={contact.avatar}
+						alt={contact.displayName}
+						src={contact.photoURL}
 					/>
 				</ListItemAvatar>
 				<ListItemText
 					classes={{ root: 'm-0', primary: 'font-medium leading-5 truncate' }}
-					primary={contact.name}
+					primary={contact.displayName}
 					secondary={
 						<Typography
 							className="inline"
@@ -41,11 +42,11 @@ function ContactListItem(props: ContactListItemPropsType) {
 							variant="body2"
 							color="text.secondary"
 						>
-							{contact.title}
+							{contact.email}
 						</Typography>
 					}
 				/>
-			</ListItemButton>
+			</ListItem>
 			<Divider />
 		</>
 	);

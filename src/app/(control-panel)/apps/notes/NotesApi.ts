@@ -390,6 +390,7 @@ export type NotesNote = {
   archived: boolean;
   createdAt: string;
   updatedAt?: string | null;
+  createdBy: string;
 };
 
 export type NotesLabel = { id: string; title: string };

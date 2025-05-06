@@ -1,46 +1,60 @@
-import FormControl from '@mui/material/FormControl';
-import FormControlLabel from '@mui/material/FormControlLabel';
-import FormLabel from '@mui/material/FormLabel';
-import IconButton from '@mui/material/IconButton';
-import Radio from '@mui/material/Radio';
-import RadioGroup from '@mui/material/RadioGroup';
-import TextField from '@mui/material/TextField';
-import Toolbar from '@mui/material/Toolbar';
-import Typography from '@mui/material/Typography';
-import { Controller, useForm } from 'react-hook-form';
-import { useContext, useEffect } from 'react';
-import Box from '@mui/material/Box';
-import Button from '@mui/material/Button';
+import { useEffect, useState, useContext } from 'react';
+import { useForm, Controller } from 'react-hook-form';
+import { Button, TextField, RadioGroup, FormControlLabel, Radio, FormControl, FormLabel, Box, Toolbar, IconButton, Typography, InputAdornment } from '@mui/material';
 import _ from 'lodash';
-import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
-import InputAdornment from '@mui/material/InputAdornment';
 import { lighten } from '@mui/material/styles';
-import { PartialObjectDeep } from 'type-fest/source/partial-deep';
+import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
+import MessengerAppContext from '@/app/(control-panel)/apps/messenger/contexts/MessengerAppContext';
 import Statuses from '../../components/Statuses';
 import UserAvatar from '../../components/UserAvatar';
-import { Profile, useGetMessengerUserProfileQuery, useUpdateMessengerUserProfileMutation } from '../../MessengerApi';
-import MessengerAppContext from '@/app/(control-panel)/apps/messenger/contexts/MessengerAppContext';
+import { supabaseClient } from "@/utils/supabaseClient";
+import { useSession } from 'next-auth/react';
 
-/**
- * The user sidebar.
- */
 function UserSidebar() {
 	const { setUserSidebarOpen } = useContext(MessengerAppContext);
-
-	const { data: user } = useGetMessengerUserProfileQuery();
-	const [updateUserData] = useUpdateMessengerUserProfileMutation();
-
+	const [user, setUser] = useState<any>(null);
 	const { control, handleSubmit, reset, formState, watch } = useForm({});
 	const { isValid, dirtyFields, errors } = formState;
+ const { data } = useSession();
 
+  const userId = data?.db?.id || "unknown-user-id";
+
+	// Load user profile from Supabase
 	useEffect(() => {
-		if (user) {
-			reset(user);
-		}
-	}, [reset, user]);
+		async function fetchUser() {
+			
+			const { data, error: userError } = await supabaseClient
+				.from('users')
+				.select('*')
+				.eq('id', userId)
+				.single();
 
-	function onSubmit(data: PartialObjectDeep<Profile, object>) {
-		updateUserData(data);
+			if (userError) {
+				console.error('Error fetching user profile', userError.message);
+				return;
+			}
+
+			setUser(data);
+			reset(data);
+		}
+
+		fetchUser();
+	}, [reset]);
+
+	async function onSubmit(formData: any) {
+		if (!userId) return;
+
+		const { error } = await supabaseClient
+			.from('users')
+			.update({ status: formData.status })
+			.eq('id', userId);
+
+		if (error) {
+			console.error('Failed to update status:', error.message);
+		} else {
+			setUser((prev: any) => ({ ...prev, status: formData.status }));
+			setUserSidebarOpen(false)
+		}
 	}
 
 	const formValues = watch();
@@ -48,7 +62,10 @@ function UserSidebar() {
 	if (!user || _.isEmpty(formValues)) {
 		return null;
 	}
-
+const handleCloseSidebar = () => {
+		setUserSidebarOpen(false);
+		reset(user);
+	};
 	return (
 		<div className="flex flex-col flex-auto h-full">
 			<Box
@@ -76,92 +93,43 @@ function UserSidebar() {
 				onSubmit={handleSubmit(onSubmit)}
 				className="px-24"
 			>
-				<Controller
-					control={control}
-					name="name"
-					render={({ field }) => (
-						<TextField
-							className="w-full"
-							{...field}
-							label="Name"
-							placeholder="Name"
-							id="name"
-							error={!!errors.name}
-							helperText={errors?.name?.message as string}
-							variant="outlined"
-							required
-							fullWidth
-							InputProps={{
-								startAdornment: (
-									<InputAdornment position="start">
-										<FuseSvgIcon size={20}>heroicons-solid:user-circle</FuseSvgIcon>
-									</InputAdornment>
-								)
-							}}
-						/>
-					)}
+				<TextField
+					className="w-full"
+					label="Name"
+					value={user.displayName}
+					disabled
+					variant="outlined"
+					InputProps={{
+						startAdornment: (
+							<InputAdornment position="start">
+								<FuseSvgIcon size={20}>heroicons-solid:user-circle</FuseSvgIcon>
+							</InputAdornment>
+						)
+					}}
 				/>
 
-				<Controller
-					control={control}
-					name="email"
-					render={({ field }) => (
-						<TextField
-							{...field}
-							className="mt-16 w-full"
-							label="Email"
-							placeholder="Email"
-							variant="outlined"
-							fullWidth
-							error={!!errors.email}
-							helperText={errors?.email?.message as string}
-							InputProps={{
-								startAdornment: (
-									<InputAdornment position="start">
-										<FuseSvgIcon size={20}>heroicons-solid:envelope</FuseSvgIcon>
-									</InputAdornment>
-								)
-							}}
-						/>
-					)}
+				<TextField
+					className="mt-16 w-full"
+					label="Email"
+					value={user.email}
+					disabled
+					variant="outlined"
+					InputProps={{
+						startAdornment: (
+							<InputAdornment position="start">
+								<FuseSvgIcon size={20}>heroicons-solid:envelope</FuseSvgIcon>
+							</InputAdornment>
+						)
+					}}
 				/>
 
-				<Controller
-					name="about"
-					control={control}
-					render={({ field }) => (
-						<TextField
-							{...field}
-							label="About"
-							className="mt-16 w-full"
-							margin="normal"
-							multiline
-							variant="outlined"
-							InputProps={{
-								startAdornment: (
-									<InputAdornment position="start">
-										<FuseSvgIcon size={20}>heroicons-solid:identification</FuseSvgIcon>
-									</InputAdornment>
-								)
-							}}
-						/>
-					)}
-				/>
-
-				<FormControl
-					component="fieldset"
-					className="w-full mt-16"
-				>
+				<FormControl component="fieldset" className="w-full mt-16">
 					<FormLabel component="legend">Status</FormLabel>
 					<Controller
 						name="status"
 						control={control}
 						render={({ field }) => (
-							<RadioGroup
-								{...field}
-								aria-label="Status"
-								name="status"
-							>
+							<RadioGroup {...field}>
 								{Statuses.map((status) => (
 									<FormControlLabel
 										key={status.value}
@@ -169,10 +137,7 @@ function UserSidebar() {
 										control={<Radio />}
 										label={
 											<div className="flex items-center">
-												<Box
-													className="w-8 h-8 rounded-full"
-													sx={{ backgroundColor: status.color }}
-												/>
+												<Box className="w-8 h-8 rounded-full" sx={{ backgroundColor: status.color }} />
 												<span className="mx-8">{status.title}</span>
 											</div>
 										}
@@ -182,14 +147,15 @@ function UserSidebar() {
 						)}
 					/>
 				</FormControl>
+
 				<div className="flex items-center justify-end mt-32">
-					<Button className="mx-8">Cancel</Button>
+					<Button className="mx-8" onClick={handleCloseSidebar}>Cancel</Button>
 					<Button
 						className="mx-8"
 						variant="contained"
 						color="secondary"
 						disabled={_.isEmpty(dirtyFields) || !isValid}
-						onClick={handleSubmit(onSubmit)}
+						type="submit"
 					>
 						Save
 					</Button>

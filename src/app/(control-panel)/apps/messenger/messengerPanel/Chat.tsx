@@ -1,254 +1,299 @@
+'use client';
+
 import { lighten, styled } from '@mui/material/styles';
 import IconButton from '@mui/material/IconButton';
 import Paper from '@mui/material/Paper';
 import Typography from '@mui/material/Typography';
 import clsx from 'clsx';
-import { formatDistanceToNow } from 'date-fns/formatDistanceToNow';
-import { ChangeEvent, FormEvent, useEffect, useMemo, useRef, useState } from 'react';
+import { formatDistanceToNow } from 'date-fns';
+import { ChangeEvent, FormEvent, useEffect, useRef, useState } from 'react';
 import InputBase from '@mui/material/InputBase';
 import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
 import { useAppSelector } from 'src/store/hooks';
 import { selectSelectedChatId } from './messengerPanelSlice';
-import {
-	Message,
-	useGetMessengerChatQuery,
-	useGetMessengerUserProfileQuery,
-	useSendMessengerMessageMutation
-} from '../MessengerApi';
+import { useSession } from 'next-auth/react';
+import { supabaseClient } from '@/utils/supabaseClient';
+import type { Message } from '../MessengerApi';
 
 const StyledMessageRow = styled('div')(({ theme }) => ({
-	'&.contact': {
-		'& .bubble': {
-			backgroundColor: lighten(theme.palette.secondary.main, 0.1),
-			color: theme.palette.secondary.contrastText,
-			borderTopLeftRadius: 5,
-			borderBottomLeftRadius: 5,
-			borderTopRightRadius: 8,
-			borderBottomRightRadius: 8,
-			'& .time': {
-				marginLeft: 12
-			}
-		},
-		'&.first-of-group': {
-			'& .bubble': {
-				borderTopLeftRadius: 8
-			}
-		},
-		'&.last-of-group': {
-			'& .bubble': {
-				borderBottomLeftRadius: 8
-			}
-		}
-	},
-	'&.me': {
-		paddingLeft: 36,
-		'& .bubble': {
-			marginLeft: 'auto',
-			backgroundColor: lighten(theme.palette.primary.main, 0.1),
-			color: theme.palette.primary.contrastText,
-			borderTopLeftRadius: 12,
-			borderBottomLeftRadius: 12,
-			borderTopRightRadius: 4,
-			borderBottomRightRadius: 4,
-			'& .time': {
-				justifyContent: 'flex-end',
-				right: 0,
-				paddingRight: 12
-			}
-		},
-		'&.first-of-group': {
-			'& .bubble': {
-				borderTopRightRadius: 12
-			}
-		},
-		'&.last-of-group': {
-			'& .bubble': {
-				borderBottomRightRadius: 12
-			}
-		}
-	},
-	'&.contact + .me, &.me + .contact': {
-		paddingTop: 20,
-		marginTop: 20
-	},
-	'&.first-of-group': {
-		'& .bubble': {
-			borderTopLeftRadius: 12,
-			paddingTop: 8
-		}
-	},
-	'&.last-of-group': {
-		'& .bubble': {
-			borderBottomLeftRadius: 12,
-			paddingBottom: 8,
-			'& .time': {
-				display: 'flex'
-			}
-		}
-	}
+  display: 'flex',
+  flexDirection: 'column',
+  paddingInline: 16,
+  paddingBottom: 4,
+  position: 'relative',
+  '&.me': {
+    alignItems: 'flex-end',
+    paddingLeft: 36,
+    '& .bubble': {
+      backgroundColor: lighten(theme.palette.primary.main, 0.1),
+      color: theme.palette.primary.contrastText,
+      borderRadius: '12px 4px 4px 12px',
+      marginLeft: 'auto',
+    },
+    '& .time': {
+      marginTop: 4,
+      paddingRight: 12,
+      marginLeft: 'auto',
+      fontSize: 12,
+      color: theme.palette.text.secondary,
+    },
+  },
+  '&.contact': {
+    alignItems: 'flex-start',
+    '& .bubble': {
+      backgroundColor: lighten(theme.palette.secondary.main, 0.1),
+      color: theme.palette.secondary.contrastText,
+      borderRadius: '4px 12px 12px 4px',
+    },
+    '& .time': {
+      marginTop: 4,
+      paddingLeft: 12,
+      fontSize: 12,
+      color: theme.palette.text.secondary,
+    },
+  },
+  '&.first-of-group .bubble': {
+    borderTopLeftRadius: 12,
+    borderTopRightRadius: 12,
+  },
+  '&.last-of-group .bubble': {
+    borderBottomLeftRadius: 12,
+    borderBottomRightRadius: 12,
+    paddingBottom: 8,
+  },
+  '&.me.first-of-group .bubble': {
+    borderTopRightRadius: 12,
+  },
+  '&.me.last-of-group .bubble': {
+    borderBottomRightRadius: 12,
+  },
+  '&.contact.first-of-group .bubble': {
+    borderTopLeftRadius: 12,
+  },
+  '&.contact.last-of-group .bubble': {
+    borderBottomLeftRadius: 12,
+  },
+  '&.contact + .me, &.me + .contact': {
+    paddingTop: 20,
+    marginTop: 20,
+  },
 }));
 
 type ChatProps = {
-	className?: string;
+  className?: string;
 };
 
-/**
- * The chat component.
- */
-function Chat(props: ChatProps) {
-	const { className } = props;
-	const selectedChatId = useAppSelector(selectSelectedChatId);
+function Chat({ className }: ChatProps) {
+  const selectedChatId = useAppSelector(selectSelectedChatId);
+  const [chatMessages, setChatMessages] = useState<Message[]>([]);
+  const [chat, setChat] = useState<any>(null);
+  const [messageText, setMessageText] = useState('');
+  const chatRef = useRef<HTMLDivElement>(null);
+  const { data } = useSession();
+  const userId = data?.db?.id || 'unknown-user-id';
 
-	const { data: chat } = useGetMessengerChatQuery(selectedChatId);
-	const { data: user } = useGetMessengerUserProfileQuery();
-	const [sendMessage] = useSendMessengerMessageMutation();
-	const { data: messages } = useGetMessengerChatQuery(selectedChatId, {
-		skip: !selectedChatId
-	});
+  const scrollToBottom = () => {
+    if (!chatRef.current) return;
+    chatRef.current.scrollTo({
+      top: chatRef.current.scrollHeight,
+      behavior: 'smooth',
+    });
+  };
 
-	const [messageText, setMessageText] = useState('');
+  useEffect(() => {
+    let channel: ReturnType<typeof supabaseClient.channel> | null = null;
 
-	const chatScroll = useRef<HTMLDivElement>(null);
+    const fetchChatAndMessages = async () => {
+      if (!selectedChatId) return;
 
-	useEffect(() => {
-		scrollToBottom();
-	}, [chat]);
+      const { data: chatData, error: chatError } = await supabaseClient
+        .from('messenger_chat')
+        .select('*')
+        .eq('id', selectedChatId)
+        .single();
 
-	function scrollToBottom() {
-		if (!chatScroll.current) {
-			return;
-		}
+      if (chatError) {
+        console.error('Error fetching chat:', chatError);
+      } else {
+        setChat(chatData);
+      }
 
-		chatScroll.current.scrollTo({
-			top: chatScroll.current.scrollHeight,
-			behavior: 'instant'
-		});
-	}
+      const { data: messagesData, error: msgError } = await supabaseClient
+        .from('messenger_message')
+        .select('*')
+        .eq('chatId', selectedChatId);
 
-	const onInputChange = (ev: ChangeEvent<HTMLInputElement>) => {
-		setMessageText(ev.target.value);
-	};
+      if (msgError) {
+        console.error('Error fetching messages:', msgError);
+      } else {
+        setChatMessages(messagesData ?? []);
+      }
+    };
 
-	return (
-		<Paper
-			className={clsx('flex flex-col relative pb-64 shadow', className)}
-			sx={(theme) => ({
-				background: theme.palette.background.default
-			})}
-		>
-			<div
-				ref={chatScroll}
-				className="flex flex-1 flex-col overflow-y-auto overscroll-contain"
-			>
-				<div className="flex flex-col pt-16">
-					{useMemo(() => {
-						function isFirstMessageOfGroup(item: Message, i: number) {
-							return i === 0 || (chat[i - 1] && chat[i - 1].contactId !== item.contactId);
-						}
+    fetchChatAndMessages();
 
-						function isLastMessageOfGroup(item: Message, i: number) {
-							return i === chat.length - 1 || (chat[i + 1] && chat[i + 1].contactId !== item.contactId);
-						}
+    channel = supabaseClient
+      .channel('realtime:messages')
+      .on<Message>(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'messenger_message',
+        },
+        (payload) => {
+          const newMsg = payload.new;
+          if (newMsg.chatId === selectedChatId) {
+            setChatMessages((prev) => {
+              const ids = new Set(prev.map((m) => m.id));
+              return ids.has(newMsg.id) ? prev : [...prev, newMsg];
+            });
+            scrollToBottom();
+          }
+        }
+      )
+      .subscribe();
 
-						return messages?.length > 0
-							? messages.map((item, i) => {
-									return (
-										<StyledMessageRow
-											key={i}
-											className={clsx(
-												'flex flex-col grow-0 shrink-0 items-start justify-end relative px-16 pb-4',
-												item.contactId === user.id ? 'me' : 'contact',
-												{ 'first-of-group': isFirstMessageOfGroup(item, i) },
-												{ 'last-of-group': isLastMessageOfGroup(item, i) },
-												i + 1 === chat.length && 'pb-40'
-											)}
-										>
-											<div className="bubble flex relative items-center justify-center px-12 py-8 max-w-full">
-												<Typography className=" whitespace-pre-wrap text-md">
-													{item.value}
-												</Typography>
-												<Typography
-													className="time absolute hidden w-full text-sm -mb-20 ltr:left-0 rtl:right-0 bottom-0 whitespace-nowrap"
-													color="text.secondary"
-												>
-													{formatDistanceToNow(new Date(item.createdAt), {
-														addSuffix: true
-													})}
-												</Typography>
-											</div>
-										</StyledMessageRow>
-									);
-								})
-							: null;
-						// eslint-disable-next-line
-					}, [chat, user?.id])}
-				</div>
-				{chat?.length === 0 && (
-					<div className="flex flex-col flex-1">
-						<div className="flex flex-col flex-1 items-center justify-center">
-							<FuseSvgIcon
-								size={128}
-								color="disabled"
-							>
-								heroicons-outline:chat-bubble-left-right
-							</FuseSvgIcon>
-						</div>
-						<Typography
-							className="px-16 pb-24 text-center"
-							color="text.secondary"
-						>
-							Start a conversation by typing your message below.
-						</Typography>
-					</div>
-				)}
-			</div>
-			{useMemo(() => {
-				const onMessageSubmit = (ev: FormEvent) => {
-					ev.preventDefault();
+    return () => {
+      if (channel) {
+        supabaseClient.removeChannel(channel);
+      }
+    };
+  }, [selectedChatId]);
 
-					if (messageText === '') {
-						return;
-					}
+  useEffect(() => {
+    scrollToBottom();
+  }, [chatMessages]);
 
-					sendMessage({
-						message: messageText,
-						chatId: selectedChatId
-					});
-					setMessageText('');
-				};
-				return (
-					chat && (
-						<form
-							onSubmit={onMessageSubmit}
-							className="pb-16 px-8 absolute bottom-0 left-0 right-0"
-						>
-							<Paper className="flex items-center relative shadow">
-								<InputBase
-									autoFocus={false}
-									id="message-input"
-									className="flex flex-1 grow shrink-0 ltr:mr-48 rtl:ml-48"
-									placeholder="Type your message"
-									onChange={onInputChange}
-									value={messageText}
-								/>
-								<IconButton
-									className="absolute ltr:right-0 rtl:left-0"
-									type="submit"
-								>
-									<FuseSvgIcon
-										className=""
-										color="action"
-									>
-										heroicons-outline:paper-airplane
-									</FuseSvgIcon>
-								</IconButton>
-							</Paper>
-						</form>
-					)
-				);
-			}, [chat, messageText, selectedChatId, sendMessage])}
-		</Paper>
-	);
+  const onInputChange = (ev: ChangeEvent<HTMLInputElement>) => {
+    setMessageText(ev.target.value);
+  };
+
+  const onMessageSubmit = async (ev: FormEvent) => {
+    ev.preventDefault();
+    if (!messageText || !selectedChatId) return;
+
+    const { error } = await supabaseClient.from('messenger_message').insert([
+      {
+        chatId: selectedChatId,
+        value: messageText,
+        contactId: userId,
+        createdAt: new Date().toISOString(),
+      },
+    ]);
+
+    const { error: chatUpdateError } = await supabaseClient
+      .from('messenger_chat')
+      .update({
+        lastMessage: messageText,
+        lastMessageAt: new Date().toISOString(),
+      })
+      .eq('id', selectedChatId);
+
+    if (error) console.error('Error sending message:', error);
+    if (chatUpdateError) console.error('Error updating chat:', chatUpdateError);
+
+    setMessageText('');
+  };
+
+  const isFirstMessageOfGroup = (item: Message, i: number) =>
+    i === 0 || chatMessages[i - 1]?.contactId !== item.contactId;
+
+  const isLastMessageOfGroup = (item: Message, i: number) =>
+    i === chatMessages.length - 1 || chatMessages[i + 1]?.contactId !== item.contactId;
+
+  return (
+    <Paper
+      className={clsx('flex flex-col relative shadow', className)}
+      sx={(theme) => ({
+        background: theme.palette.background.default,
+      })}
+    >
+      <div ref={chatRef} className="flex flex-1 flex-col overflow-y-auto overscroll-contain">
+        <div className="flex flex-col pt-16 px-16 pb-40">
+          {chatMessages.map((item, i) => (
+            <StyledMessageRow
+              key={item.id}
+              className={clsx(
+                item.contactId === userId ? 'me' : 'contact',
+                {
+                  'first-of-group': isFirstMessageOfGroup(item, i),
+                  'last-of-group': isLastMessageOfGroup(item, i),
+                  'pb-72': i + 1 === chatMessages.length,
+                }
+              )}
+            >
+              <div className="bubble flex items-center px-12 py-8 max-w-full">
+                <Typography className="whitespace-pre-wrap text-md">
+                  {item.value}
+                </Typography>
+              </div>
+              <Typography className="time mt-1 text-xs">
+                {formatDistanceToNow(new Date(item.createdAt), {
+                  addSuffix: true,
+                })}
+              </Typography>
+            </StyledMessageRow>
+          ))}
+
+          {chatMessages.length === 0 && (
+            <div className="flex flex-col flex-1">
+              <div className="flex flex-col flex-1 items-center justify-center">
+                <FuseSvgIcon size={128} color="disabled">
+                  heroicons-outline:chat-bubble-left-right
+                </FuseSvgIcon>
+              </div>
+              <Typography className="px-16 pb-24 text-center" color="text.secondary">
+                Start a conversation by typing your message below.
+              </Typography>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {chat && (
+        <Paper
+          square
+          component="form"
+          onSubmit={onMessageSubmit}
+          className="absolute border-t-1 bottom-0 right-0 left-0 py-16 px-16"
+          sx={(theme) => ({
+            backgroundColor: lighten(theme.palette.background.default, 0.02),
+          })}
+        >
+          <div className="flex items-center relative">
+            {/* <IconButton type="submit">
+              <FuseSvgIcon className="text-3xl" color="action">
+                heroicons-outline:face-smile
+              </FuseSvgIcon>
+            </IconButton>
+
+            <IconButton type="submit">
+              <FuseSvgIcon className="text-3xl" color="action">
+                heroicons-outline:paper-clip
+              </FuseSvgIcon>
+            </IconButton> */}
+
+            <InputBase
+              autoFocus={false}
+              id="message-input"
+              className="flex-1 flex grow shrink-0 mx-8 border-2"
+              placeholder="Type your message"
+              onChange={onInputChange}
+              value={messageText}
+              sx={{ backgroundColor: 'background.paper' }}
+            />
+
+            <IconButton type="submit">
+              <FuseSvgIcon color="action">
+                heroicons-outline:paper-airplane
+              </FuseSvgIcon>
+            </IconButton>
+          </div>
+        </Paper>
+      )}
+    </Paper>
+  );
 }
 
 export default Chat;

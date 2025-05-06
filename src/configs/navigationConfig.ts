@@ -128,7 +128,7 @@ const navigationConfig: FuseNavItemType[] = [
 			{
 				id: 'apps.tasks',
 				title: 'Tasks',
-				subtitle: '12 remaining tasks',
+				// subtitle: '12 remaining tasks',
 				type: 'item',
 				icon: 'heroicons-outline:check-circle',
 				url: '/apps/tasks',
