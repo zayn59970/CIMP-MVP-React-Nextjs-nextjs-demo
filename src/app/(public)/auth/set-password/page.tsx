@@ -8,7 +8,21 @@ export default function SetPasswordPage() {
   const [password, setPassword] = useState('');
   const router = useRouter();
   const supabase = createPagesBrowserClient();
+  const params = new URLSearchParams(typeof window !== 'undefined' ? window.location.hash.substring(1) : '')
+  const access_token = params.get('access_token')
+  const refresh_token = params.get('refresh_token')
 
+  if (access_token && refresh_token) {
+      supabase.auth.setSession({
+          access_token,
+          refresh_token
+      }).then((res) => {
+          if (res.error) {
+              console.error("error msg", res.error.message)
+          }
+           console.log("session data", res.data)
+      })
+  }
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 

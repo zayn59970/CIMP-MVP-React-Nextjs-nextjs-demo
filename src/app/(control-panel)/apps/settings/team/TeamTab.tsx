@@ -49,28 +49,28 @@ function TeamTab() {
 
   const { isValid } = formState;
 
+  const fetchUsers = async () => {
+    const currentEmail = session?.user?.email;
+    if (!currentEmail) return;
+
+    const { data, error } = await supabaseClient
+      .from('users')
+      .select('*')
+      .neq('email', currentEmail);
+
+    if (error) {
+      console.error('Error fetching users:', error);
+      dispatch(showMessage({
+        message: 'Error fetching users.',
+        variant: 'error',
+        autoHideDuration: 2000,
+        anchorOrigin: { vertical: 'top', horizontal: 'right' },
+      }));
+    } else {
+      setUsers(data || []);
+    }
+  };
   useEffect(() => {
-    const fetchUsers = async () => {
-      const currentEmail = session?.user?.email;
-      if (!currentEmail) return;
-
-      const { data, error } = await supabaseClient
-        .from('users')
-        .select('*')
-        .neq('email', currentEmail);
-
-      if (error) {
-        console.error('Error fetching users:', error);
-        dispatch(showMessage({
-          message: 'Error fetching users.',
-          variant: 'error',
-          autoHideDuration: 2000,
-          anchorOrigin: { vertical: 'top', horizontal: 'right' },
-        }));
-      } else {
-        setUsers(data || []);
-      }
-    };
 
     fetchUsers();
   }, [session?.user?.email]);
@@ -88,7 +88,7 @@ function TeamTab() {
         setError('root', { type: 'manual', message: result.message });
         return;
       }
-
+      fetchUsers();
       reset();
       dispatch(showMessage({
         message: 'Invite sent. Ask the user to check their email.',

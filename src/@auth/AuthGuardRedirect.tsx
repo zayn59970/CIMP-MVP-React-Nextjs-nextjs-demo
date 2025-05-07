@@ -54,6 +54,8 @@ function AuthGuardRedirect({
       "/sign-out",
       "/logout",
       "/404",
+	  '/auth/set-password',
+	  '/auth/callback',
     ];
 
     if (

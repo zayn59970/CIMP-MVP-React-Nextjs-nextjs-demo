@@ -14,16 +14,15 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ message: 'Email is required' }, { status: 400 });
     }
 
-    // 1. Create user silently (no email)
-    const { data, error } = await supabaseAdmin.auth.admin.inviteUserByEmail(
-      email,
-    );
+    const { data, error } = await supabaseAdmin.auth.admin.inviteUserByEmail(email, {
+      redirectTo: 'http://localhost:3000/auth/set-password', // ✅ Correct placement
+    });
 
     if (error) {
       return NextResponse.json({ message: error.message }, { status: 500 });
     }
 
-    return NextResponse.json({ message: 'User created and reset email sent' }, { status: 200 });
+    return NextResponse.json({ message: 'User invited and email sent' }, { status: 200 });
   } catch (error: any) {
     return NextResponse.json({ message: error.message }, { status: 500 });
   }
