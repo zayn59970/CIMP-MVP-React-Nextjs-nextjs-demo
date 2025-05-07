@@ -11,7 +11,7 @@ import { useRouter } from 'next/navigation';
 import Link from '@fuse/core/Link';
 import _ from 'lodash';
 import { signIn } from 'next-auth/react';
-
+ 
 const schema = z.object({
   email: z.string().email('Invalid email').nonempty('Email is required'),
   password: z.string().min(4, 'Password must be at least 4 characters long').nonempty('Password is required')
